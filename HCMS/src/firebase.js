@@ -1,18 +1,17 @@
-import { initializeApp }  from "firebase/app";
-import { getAuth }        from "firebase/auth";
-import { getFirestore }   from "firebase/firestore";
-
+import { initializeApp } from "firebase/app";
+import { getAuth }       from "firebase/auth";
+import { getFirestore }  from "firebase/firestore";
+console.log("API KEY:", import.meta.env.VITE_FIREBASE_API_KEY)
 
 const firebaseConfig = {
-  apiKey:            "AIzaSyAecYEAE52xDI_L6ZYOvdoFPw84YqmRb0I",
-  authDomain:        "hosteldesk-3ad93.firebaseapp.com",
-  projectId:         "hosteldesk-3ad93",
-  storageBucket:     "hosteldesk-3ad93.firebasestorage.app",
-  messagingSenderId: "310547199848",
-  appId:             "Y1:310547199848:web:66bd119b19ee79c6a808dd",
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase 
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
