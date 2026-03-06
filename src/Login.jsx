@@ -109,8 +109,8 @@ function LeftPanel({ mode }) {
       ];
 
   return (
-    <div className="w-[44%] flex-shrink-0 bg-[#1447A3] flex flex-col
-                    justify-between p-10 relative overflow-hidden">
+    <div className="w-full md:w-[44%] flex-shrink-0 bg-[#1447A3] flex flex-col
+                justify-between p-8 md:p-10 relative overflow-hidden min-h-[280px] md:min-h-screen">
       <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full
                       bg-white opacity-5 pointer-events-none" />
       <div className="absolute bottom-10 -left-20 w-72 h-72 rounded-full
@@ -578,7 +578,7 @@ function RegisterForm({ onRegister, onSwitch }) {
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
   return (
-    <div className="min-h-screen w-screen flex overflow-hidden"
+    <div className="min-h-screen w-screen flex flex-col md:flex-row overflow-hidden"
          style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <LeftPanel mode={mode} />
       {mode === "login"

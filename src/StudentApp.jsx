@@ -137,7 +137,7 @@ function QuickAction({ icon: Icon, iconBg, iconColor, label, desc, onClick }) {
 // ─── SIDEBAR ───────────────────────────────────────────────────────
 function Sidebar({ active, setActive, user, onLogout }) {
   return (
-    <aside className="w-64 bg-[#1447A3] flex flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xl">
+    <aside className="w-64 bg-[#1447A3] flex flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xl -translate-x-full md:translate-x-0 transition-transform duration-300">
 
       {/* Logo */}
       <div className="px-5 py-6 border-b border-white/10">
@@ -320,19 +320,19 @@ function DashboardView({ setActive, user }) {
             {user.hostel} · {user.room} &nbsp;·&nbsp; {user.matric}
           </p>
         </div>
-        <button
-          onClick={() => setActive("submit")}
-          className="relative z-10 flex items-center gap-2 bg-white text-[#1447A3]
-                     font-bold text-sm px-5 py-3 rounded-xl shadow
-                     hover:bg-blue-50 transition-colors flex-shrink-0"
-        >
-          <PlusCircle className="w-4 h-4" />
-          New Complaint
-        </button>
+       <button
+  onClick={() => setActive("submit")}
+  className="relative z-10 hidden sm:flex items-center gap-2 bg-white text-[#1447A3]
+             font-bold text-sm px-5 py-3 rounded-xl shadow
+             hover:bg-blue-50 transition-colors flex-shrink-0"
+>
+  <PlusCircle className="w-4 h-4" />
+  New Complaint
+</button>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
         <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value="8" sub="Since session start" subColor="text-slate-400"   />
         <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value="2" sub="Awaiting action"      subColor="text-amber-500"   />
         <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value="5" sub="↑ Great progress!"    subColor="text-emerald-500" />
@@ -340,10 +340,10 @@ function DashboardView({ setActive, user }) {
       </div>
 
       {/* Recent Complaints + Quick Actions */}
-      <div className="grid grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
 
         {/* Recent Complaints */}
-        <div className="col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="col-span-1 md:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4 text-[#1447A3]" />
@@ -380,7 +380,7 @@ function DashboardView({ setActive, user }) {
         </div>
 
         {/* Quick Actions */}
-        <div className="col-span-2 space-y-3">
+       <div className="col-span-1 md:col-span-2 space-y-3">
           <p className="text-sm font-bold text-slate-600 px-1">Quick Actions</p>
           <QuickAction icon={PlusCircle}    iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Submit a Complaint"  desc="Report a new hostel issue" onClick={() => setActive("submit")}  />
           <QuickAction icon={ClipboardList} iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Track My Complaints" desc="Check status updates"       onClick={() => setActive("track")}   />
@@ -582,7 +582,7 @@ function SubmitComplaintView({ setActive, user }) {
 
       {/* Step 1 — Location */}
       {step === 1 && (
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -652,7 +652,7 @@ function SubmitComplaintView({ setActive, user }) {
 
       {/* Step 2 — Details */}
       {step === 2 && (
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -735,7 +735,7 @@ function SubmitComplaintView({ setActive, user }) {
 
       {/* Step 3 — Priority */}
       {step === 3 && (
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -807,7 +807,7 @@ function SubmitComplaintView({ setActive, user }) {
 
       {/* Step 4 — Review */}
       {step === 4 && (
-        <div className="grid grid-cols-2 gap-5">
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -1138,7 +1138,7 @@ function MyComplaintsView({ setActive, user }) {
       )}
 
       {/* Complaint Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map((c) => (
           <div
             key={c.id}
@@ -1203,7 +1203,7 @@ function HistoryView({ user }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
           { label: "Total Submitted", value: complaints.length, Icon: ClipboardList, iconBg: "bg-blue-50",    iconColor: "text-[#1447A3]"   },
           { label: "Resolved",        value: complaints.length, Icon: CheckCircle2,  iconBg: "bg-emerald-50", iconColor: "text-emerald-500" },
@@ -1292,8 +1292,8 @@ export default function StudentApp({ user, onLogout }) {
   const [showLogout, setShowLogout] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-slate-50"
-         style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="flex min-h-screen bg-slate-50 relative"
+     style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {showLogout && (
         <LogoutModal
@@ -1305,7 +1305,7 @@ export default function StudentApp({ user, onLogout }) {
 
       <Sidebar active={active} setActive={setActive} user={user} onLogout={() => setShowLogout(true)} />
 
-      <div className="ml-64 flex-1 flex flex-col min-h-screen">
+      <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
         <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} />
 
         <main className="flex-1 overflow-auto w-full">
@@ -1317,7 +1317,27 @@ export default function StudentApp({ user, onLogout }) {
           }
         </main>
       </div>
-
+{/* Mobile Bottom Nav */}
+<nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 
+                flex md:hidden z-40">
+  {[
+    { id: "dashboard", icon: LayoutDashboard, label: "Home"     },
+    { id: "submit",    icon: PlusCircle,      label: "Submit"   },
+    { id: "track",     icon: ClipboardList,   label: "Track"    },
+    { id: "history",   icon: History,         label: "History"  },
+    { id: "profile",   icon: User,            label: "Profile"  },
+  ].map(({ id, icon: Icon, label }) => (
+    <button
+      key={id}
+      onClick={() => setActive(id)}
+      className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
+                  ${active === id ? "text-[#1447A3]" : "text-slate-400"}`}
+    >
+      <Icon className="w-5 h-5" />
+      {label}
+    </button>
+  ))}
+</nav>
     </div>
   );
 }
