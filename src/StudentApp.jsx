@@ -58,8 +58,6 @@ const PAGE_TITLES = {
   help:      "Contact Help",
 };
 
-
-
 const STATUS_CONFIG = {
   urgent:   { label: "Urgent",      dot: "bg-red-500",     badge: "bg-red-50 text-red-600 ring-red-200"             },
   progress: { label: "In Progress", dot: "bg-amber-500",   badge: "bg-amber-50 text-amber-600 ring-amber-200"       },
@@ -131,9 +129,8 @@ function QuickAction({ icon: Icon, iconBg, iconColor, label, desc, onClick }) {
 // ─── SIDEBAR ───────────────────────────────────────────────────────
 function Sidebar({ active, setActive, user, onLogout }) {
   return (
-    <aside className="w-64 bg-[#1447A3] flex flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xl -translate-x-full md:translate-x-0 transition-transform duration-300">
-
-      {/* Logo */}
+    <aside className="w-64 bg-[#1447A3] flex flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xl
+                      -translate-x-full md:translate-x-0 transition-transform duration-300">
       <div className="px-5 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow">
@@ -149,7 +146,6 @@ function Sidebar({ active, setActive, user, onLogout }) {
         </div>
       </div>
 
-      {/* Student Badge */}
       <div className="mx-4 mt-4 px-4 py-3 bg-white/10 border border-white/20 rounded-xl">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center
@@ -163,7 +159,6 @@ function Sidebar({ active, setActive, user, onLogout }) {
         </div>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 mt-1 space-y-6">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
@@ -202,7 +197,6 @@ function Sidebar({ active, setActive, user, onLogout }) {
         ))}
       </nav>
 
-      {/* Bottom profile + logout */}
       <div className="p-4 border-t border-white/10 space-y-2">
         <div className="flex items-center gap-2.5 bg-white/6 rounded-xl px-3 py-2.5">
           <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center
@@ -224,7 +218,6 @@ function Sidebar({ active, setActive, user, onLogout }) {
           <span>Log Out</span>
         </button>
       </div>
-
     </aside>
   );
 }
@@ -233,7 +226,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
 function Topbar({ pageTitle, user }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
-                       gap-4 px-6 sticky top-0 z-20 shadow-sm">
+                       gap-4 px-4 md:px-6 sticky top-0 z-20 shadow-sm">
       <div>
         <h2 className="text-lg font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -259,7 +252,7 @@ function Topbar({ pageTitle, user }) {
                           justify-center text-xs font-bold text-white">
             {user.initials}
           </div>
-          <div>
+          <div className="hidden sm:block">
             <p className="text-sm font-semibold text-slate-700 leading-tight">{user.name}</p>
             <p className="text-[10px] text-slate-400">{user.matric} · Student</p>
           </div>
@@ -305,11 +298,12 @@ function DashboardView({ setActive, user }) {
   const resolved = complaints.filter(c => c.status === "resolved").length;
   const urgent   = complaints.filter(c => c.status === "urgent").length;
   const recent   = complaints.slice(0, 4);
+
   return (
-    <div className="p-6 space-y-6 w-full">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 w-full">
 
       {/* Welcome Banner */}
-      <div className="bg-[#1447A3] rounded-2xl p-6 flex items-center justify-between
+      <div className="bg-[#1447A3] rounded-2xl p-5 md:p-6 flex items-center justify-between
                       shadow-lg overflow-hidden relative">
         <div className="absolute right-0 top-0 w-64 h-full opacity-10 pointer-events-none">
           <div className="w-48 h-48 rounded-full bg-white absolute -top-10 -right-10" />
@@ -317,30 +311,33 @@ function DashboardView({ setActive, user }) {
         </div>
         <div className="relative z-10">
           <p className="text-blue-200 text-sm font-medium mb-1">Good morning 👋</p>
-          <h1 className="text-white text-2xl font-bold mb-2"
+          <h1 className="text-white text-xl md:text-2xl font-bold mb-2"
               style={{ fontFamily: "'Playfair Display', serif" }}>
             Welcome back, {user.name.split(" ")[0]}!
           </h1>
-          <p className="text-blue-200 text-sm">
+          <p className="text-blue-200 text-xs md:text-sm">
             {user.hostel} · {user.room} &nbsp;·&nbsp; {user.matric}
           </p>
         </div>
-       <button
-  onClick={() => setActive("submit")}
-  className="relative z-10 hidden sm:flex items-center gap-2 bg-white text-[#1447A3]
-             font-bold text-sm px-5 py-3 rounded-xl shadow
-             hover:bg-blue-50 transition-colors flex-shrink-0"
->
-  <PlusCircle className="w-4 h-4" />
-  New Complaint
-</button>
+        <button
+          onClick={() => setActive("submit")}
+          className="relative z-10 hidden sm:flex items-center gap-2 bg-white text-[#1447A3]
+                     font-bold text-sm px-5 py-3 rounded-xl shadow
+                     hover:bg-blue-50 transition-colors flex-shrink-0"
+        >
+          <PlusCircle className="w-4 h-4" />
+          New Complaint
+        </button>
       </div>
 
       {/* Stat Cards */}
-      <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value={total}    sub="Since session start" subColor="text-slate-400"   />
-<StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"      subColor="text-amber-500"   />
-<StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved} sub="↑ Great progress!"    subColor="text-emerald-500" />
-<StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"      subColor="text-red-500"     />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
+        <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value={total}    sub="Since session start" subColor="text-slate-400"   />
+        <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"      subColor="text-amber-500"   />
+        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved} sub="↑ Great progress!"    subColor="text-emerald-500" />
+        <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"      subColor="text-red-500"     />
+      </div>
+
       {/* Recent Complaints + Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
 
@@ -359,13 +356,22 @@ function DashboardView({ setActive, user }) {
             </button>
           </div>
           <div className="divide-y divide-slate-50">
-           {recent.length === 0 ? (
-  <div className="flex items-center justify-center py-10">
-    <p className="text-sm text-slate-400">No complaints yet.</p>
-  </div>
-) : recent.map((c) => (
+            {recent.length === 0 ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="text-center space-y-2">
+                  <ClipboardList className="w-8 h-8 text-slate-200 mx-auto" />
+                  <p className="text-sm text-slate-400">No complaints yet.</p>
+                  <button
+                    onClick={() => setActive("submit")}
+                    className="text-[#1447A3] text-xs font-bold hover:underline"
+                  >
+                    Submit your first →
+                  </button>
+                </div>
+              </div>
+            ) : recent.map((c) => (
               <div key={c.id}
-                   className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                   className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center
                                 justify-center text-lg flex-shrink-0">
                   {CATEGORY_ICONS[c.category] ?? "📌"}
@@ -375,18 +381,17 @@ function DashboardView({ setActive, user }) {
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-slate-400">{c.category}</span>
                     <span className="text-slate-200">·</span>
-                    <span className="text-xs text-slate-400">{c.date}</span>
+                    <span className="text-xs text-slate-400">{c.submittedAt}</span>
                   </div>
                 </div>
                 <StatusBadge status={c.status} />
-                <span className="text-xs font-bold text-blue-400 flex-shrink-0">#{c.id}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Quick Actions */}
-       <div className="col-span-1 md:col-span-2 space-y-3">
+        <div className="col-span-1 md:col-span-2 space-y-3">
           <p className="text-sm font-bold text-slate-600 px-1">Quick Actions</p>
           <QuickAction icon={PlusCircle}    iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Submit a Complaint"  desc="Report a new hostel issue" onClick={() => setActive("submit")}  />
           <QuickAction icon={ClipboardList} iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Track My Complaints" desc="Check status updates"       onClick={() => setActive("track")}   />
@@ -458,7 +463,6 @@ function SubmitComplaintView({ setActive, user }) {
     return true;
   };
 
-  // ── Firebase submit ──────────────────────────────────────────────
   const handleSubmit = async () => {
     setLoading(true);
     try {
@@ -484,7 +488,7 @@ function SubmitComplaintView({ setActive, user }) {
     return (
       <div className="flex items-center justify-center min-h-[80vh] p-6">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-lg
-                        p-10 max-w-md w-full text-center space-y-5">
+                        p-8 md:p-10 max-w-md w-full text-center space-y-5">
           <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center
                           justify-center mx-auto">
             <CheckCircle2 className="w-10 h-10 text-emerald-500" />
@@ -546,7 +550,7 @@ function SubmitComplaintView({ setActive, user }) {
   }
 
   return (
-    <div className="p-6 w-full">
+    <div className="p-4 md:p-6 w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -586,7 +590,7 @@ function SubmitComplaintView({ setActive, user }) {
         })}
       </div>
 
-      {/* Step 1 — Location */}
+      {/* Step 1 */}
       {step === 1 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
@@ -595,9 +599,7 @@ function SubmitComplaintView({ setActive, user }) {
                 <Building2 className="w-5 h-5 text-[#1447A3]" />
                 <h3 className="text-base font-bold text-slate-700">Your Location</h3>
               </div>
-              <p className="text-sm text-slate-400">
-                Tell us which hostel and room the issue is in.
-              </p>
+              <p className="text-sm text-slate-400">Tell us which hostel and room the issue is in.</p>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -656,7 +658,7 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
-      {/* Step 2 — Details */}
+      {/* Step 2 */}
       {step === 2 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
@@ -665,9 +667,7 @@ function SubmitComplaintView({ setActive, user }) {
                 <ClipboardList className="w-5 h-5 text-[#1447A3]" />
                 <h3 className="text-base font-bold text-slate-700">Complaint Details</h3>
               </div>
-              <p className="text-sm text-slate-400">
-                Describe the issue clearly so we can resolve it faster.
-              </p>
+              <p className="text-sm text-slate-400">Describe the issue clearly so we can resolve it faster.</p>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -692,7 +692,7 @@ function SubmitComplaintView({ setActive, user }) {
                 value={form.description}
                 onChange={(e) => update("description", e.target.value)}
                 rows={6}
-                placeholder="Describe the issue in detail — what happened, when it started, how severe it is..."
+                placeholder="Describe the issue in detail..."
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
                            text-slate-700 outline-none resize-none leading-relaxed
                            focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100
@@ -739,7 +739,7 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
-      {/* Step 3 — Priority */}
+      {/* Step 3 */}
       {step === 3 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
@@ -811,18 +811,16 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
-      {/* Step 4 — Review */}
+      {/* Step 4 */}
       {step === 4 && (
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <CheckCircle2 className="w-5 h-5 text-[#1447A3]" />
                 <h3 className="text-base font-bold text-slate-700">Review & Submit</h3>
               </div>
-              <p className="text-sm text-slate-400">
-                Please review your complaint before submitting.
-              </p>
+              <p className="text-sm text-slate-400">Please review your complaint before submitting.</p>
             </div>
             <div className="bg-slate-50 rounded-xl divide-y divide-slate-200">
               {[
@@ -863,8 +861,7 @@ function SubmitComplaintView({ setActive, user }) {
                 Almost done!
               </h3>
               <p className="text-emerald-100 text-sm leading-relaxed">
-                Review your complaint carefully before submitting. You can go back
-                and edit any step if needed.
+                Review your complaint carefully before submitting.
               </p>
             </div>
             <div className="mt-6 space-y-3">
@@ -911,8 +908,7 @@ function SubmitComplaintView({ setActive, user }) {
           >
             {loading ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white
-                                rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Submitting…
               </>
             ) : (
@@ -931,18 +927,17 @@ function MyComplaintsView({ setActive, user }) {
   const [filter, setFilter]         = useState("all");
   const [complaints, setComplaints] = useState([]);
 
-  // ── Live listener from Firestore ──────────────────────────────
   useEffect(() => {
     const unsub = listenStudentComplaints(user.uid, setComplaints);
     return () => unsub();
   }, [user.uid]);
 
   const filters = [
-    { key: "all",      label: "All",         count: complaints.length                                          },
-    { key: "urgent",   label: "Urgent",      count: complaints.filter(c => c.status === "urgent").length      },
-    { key: "open",     label: "Open",        count: complaints.filter(c => c.status === "open").length        },
-    { key: "progress", label: "In Progress", count: complaints.filter(c => c.status === "progress").length    },
-    { key: "resolved", label: "Resolved",    count: complaints.filter(c => c.status === "resolved").length    },
+    { key: "all",      label: "All",         count: complaints.length                                       },
+    { key: "urgent",   label: "Urgent",      count: complaints.filter(c => c.status === "urgent").length    },
+    { key: "open",     label: "Open",        count: complaints.filter(c => c.status === "open").length      },
+    { key: "progress", label: "In Progress", count: complaints.filter(c => c.status === "progress").length  },
+    { key: "resolved", label: "Resolved",    count: complaints.filter(c => c.status === "resolved").length  },
   ];
 
   const filtered = complaints.filter((c) => filter === "all" || c.status === filter);
@@ -950,7 +945,7 @@ function MyComplaintsView({ setActive, user }) {
   if (selected) {
     const c = selected;
     return (
-      <div className="p-6 w-full">
+      <div className="p-4 md:p-6 w-full">
         <button
           onClick={() => setSelected(null)}
           className="flex items-center gap-2 text-sm font-semibold text-[#1447A3]
@@ -959,9 +954,9 @@ function MyComplaintsView({ setActive, user }) {
           <ChevronRight className="w-4 h-4 rotate-180" /> Back to My Complaints
         </button>
 
-        <div className="grid grid-cols-3 gap-5">
-          <div className="col-span-2 space-y-5">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="col-span-1 md:col-span-2 space-y-5">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">
@@ -975,7 +970,7 @@ function MyComplaintsView({ setActive, user }) {
                 <StatusBadge status={c.status} />
               </div>
               <p className="text-sm text-slate-500 leading-relaxed">{c.desc}</p>
-              <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-slate-100">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-slate-100">
                 {[
                   { label: "Category",  value: `${CATEGORY_ICONS[c.category] ?? "📌"} ${c.category}` },
                   { label: "Location",  value: `${c.hostel} · ${c.room}`                              },
@@ -996,9 +991,7 @@ function MyComplaintsView({ setActive, user }) {
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Priority</p>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
                                   text-sm font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
-                  {c.priority
-                    ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1)
-                    : "—"}
+                  {c.priority ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1) : "—"}
                 </span>
               </div>
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
@@ -1045,7 +1038,7 @@ function MyComplaintsView({ setActive, user }) {
           </div>
 
           {/* Timeline */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 h-fit">
             <div className="flex items-center gap-2 mb-5">
               <History className="w-4 h-4 text-[#1447A3]" />
               <p className="text-sm font-bold text-slate-700">Complaint Timeline</p>
@@ -1054,26 +1047,23 @@ function MyComplaintsView({ setActive, user }) {
               <div className="absolute left-3.5 top-0 bottom-0 w-0.5 bg-slate-100" />
               <div className="space-y-6">
                 {[
-                  { event: "Complaint submitted",   done: true                          },
-                  { event: "Under review by admin", done: true                          },
-                  { event: "Assigned to porter",    done: !!c.assignedTo                },
-                  { event: "Work in progress",      done: c.status === "progress" || c.status === "resolved" },
-                  { event: "Resolved & closed",     done: c.status === "resolved"       },
+                  { event: "Complaint submitted",   done: true                                                        },
+                  { event: "Under review by admin", done: true                                                        },
+                  { event: "Assigned to porter",    done: !!c.assignedTo                                              },
+                  { event: "Work in progress",      done: c.status === "progress" || c.status === "resolved"          },
+                  { event: "Resolved & closed",     done: c.status === "resolved"                                     },
                 ].map((t, i) => (
                   <div key={i} className="flex items-start gap-4 relative">
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center
                                      flex-shrink-0 z-10 border-2
-                                     ${t.done
-                                       ? "bg-[#1447A3] border-[#1447A3]"
-                                       : "bg-white border-slate-200"}`}>
+                                     ${t.done ? "bg-[#1447A3] border-[#1447A3]" : "bg-white border-slate-200"}`}>
                       {t.done
                         ? <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                         : <div className="w-2 h-2 rounded-full bg-slate-300" />
                       }
                     </div>
                     <div className="pt-0.5">
-                      <p className={`text-sm font-semibold
-                        ${t.done ? "text-slate-700" : "text-slate-400"}`}>
+                      <p className={`text-sm font-semibold ${t.done ? "text-slate-700" : "text-slate-400"}`}>
                         {t.event}
                       </p>
                     </div>
@@ -1088,7 +1078,7 @@ function MyComplaintsView({ setActive, user }) {
   }
 
   return (
-    <div className="p-6 w-full">
+    <div className="p-4 md:p-6 w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800"
@@ -1099,21 +1089,21 @@ function MyComplaintsView({ setActive, user }) {
         </div>
         <button
           onClick={() => setActive("submit")}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1447A3]
-                     text-white text-sm font-semibold hover:bg-blue-800 transition-colors"
+          className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1447A3]
+                     text-white text-sm font-semibold hover:bg-blue-800 transition-colors flex-shrink-0"
         >
           <PlusCircle className="w-4 h-4" /> New Complaint
         </button>
       </div>
 
       {/* Filter chips */}
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
         {filters.map((f) => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold
-                         border transition-all
+                         border transition-all flex-shrink-0
                          ${filter === f.key
                            ? "bg-[#1447A3] text-white border-[#1447A3]"
                            : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}
@@ -1159,9 +1149,7 @@ function MyComplaintsView({ setActive, user }) {
                   {CATEGORY_ICONS[c.category] ?? "📌"}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-blue-500">
-                    {c.category}
-                  </p>
+                  <p className="text-xs font-bold text-blue-500">{c.category}</p>
                   <p className="text-sm font-bold text-slate-700 leading-tight">{c.title}</p>
                 </div>
               </div>
@@ -1198,7 +1186,7 @@ function HistoryView({ user }) {
   }, [user.uid]);
 
   return (
-    <div className="p-6 w-full">
+    <div className="p-4 md:p-6 w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800"
@@ -1209,7 +1197,7 @@ function HistoryView({ user }) {
         </div>
       </div>
 
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
           { label: "Total Submitted", value: complaints.length, Icon: ClipboardList, iconBg: "bg-blue-50",    iconColor: "text-[#1447A3]"   },
           { label: "Resolved",        value: complaints.length, Icon: CheckCircle2,  iconBg: "bg-emerald-50", iconColor: "text-emerald-500" },
@@ -1248,44 +1236,44 @@ function HistoryView({ user }) {
             </div>
           </div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                {["Title", "Category", "Location", "Submitted", "Assigned To", "Priority"].map((h) => (
-                  <th key={h} className="text-left text-[10px] font-bold text-slate-400
-                                         uppercase tracking-wider px-5 py-3">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {complaints.map((c) => (
-                <tr key={c.id}
-                    className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
-                  <td className="px-5 py-4 text-sm font-semibold text-slate-700">{c.title}</td>
-                  <td className="px-5 py-4">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100
-                                     rounded-lg text-xs font-medium text-slate-600">
-                      {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-xs text-slate-500">{c.hostel} · {c.room}</td>
-                  <td className="px-5 py-4 text-xs text-slate-500">{c.submittedAt}</td>
-                  <td className="px-5 py-4 text-xs text-slate-600 font-medium">{c.assignedTo ?? "—"}</td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full
-                                      text-xs font-bold ring-1
-                                      ${PRIORITY_CONFIG[c.priority]?.badge ?? ""}`}>
-                      {c.priority
-                        ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1)
-                        : "—"}
-                    </span>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px]">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  {["Title", "Category", "Location", "Submitted", "Assigned To", "Priority"].map((h) => (
+                    <th key={h} className="text-left text-[10px] font-bold text-slate-400
+                                           uppercase tracking-wider px-5 py-3">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {complaints.map((c) => (
+                  <tr key={c.id}
+                      className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-700">{c.title}</td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100
+                                       rounded-lg text-xs font-medium text-slate-600">
+                        {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-xs text-slate-500">{c.hostel} · {c.room}</td>
+                    <td className="px-5 py-4 text-xs text-slate-500">{c.submittedAt}</td>
+                    <td className="px-5 py-4 text-xs text-slate-600 font-medium">{c.assignedTo ?? "—"}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full
+                                        text-xs font-bold ring-1
+                                        ${PRIORITY_CONFIG[c.priority]?.badge ?? ""}`}>
+                        {c.priority ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1) : "—"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
@@ -1299,7 +1287,7 @@ export default function StudentApp({ user, onLogout }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50 relative"
-     style={{ fontFamily: "'DM Sans', sans-serif" }}>
+         style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {showLogout && (
         <LogoutModal
@@ -1313,7 +1301,6 @@ export default function StudentApp({ user, onLogout }) {
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
         <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} />
-
         <main className="flex-1 overflow-auto w-full">
           {active === "dashboard" ? <DashboardView  setActive={setActive} user={user} /> :
            active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
@@ -1323,27 +1310,28 @@ export default function StudentApp({ user, onLogout }) {
           }
         </main>
       </div>
-{/* Mobile Bottom Nav */}
-<nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 
-                flex md:hidden z-40">
-  {[
-    { id: "dashboard", icon: LayoutDashboard, label: "Home"     },
-    { id: "submit",    icon: PlusCircle,      label: "Submit"   },
-    { id: "track",     icon: ClipboardList,   label: "Track"    },
-    { id: "history",   icon: History,         label: "History"  },
-    { id: "profile",   icon: User,            label: "Profile"  },
-  ].map(({ id, icon: Icon, label }) => (
-    <button
-      key={id}
-      onClick={() => setActive(id)}
-      className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
-                  ${active === id ? "text-[#1447A3]" : "text-slate-400"}`}
-    >
-      <Icon className="w-5 h-5" />
-      {label}
-    </button>
-  ))}
-</nav>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200
+                      flex md:hidden z-40">
+        {[
+          { id: "dashboard", icon: LayoutDashboard, label: "Home"    },
+          { id: "submit",    icon: PlusCircle,      label: "Submit"  },
+          { id: "track",     icon: ClipboardList,   label: "Track"   },
+          { id: "history",   icon: History,         label: "History" },
+          { id: "profile",   icon: User,            label: "Profile" },
+        ].map(({ id, icon: Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setActive(id)}
+            className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
+                        ${active === id ? "text-[#1447A3]" : "text-slate-400"}`}
+          >
+            <Icon className="w-5 h-5" />
+            {label}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
