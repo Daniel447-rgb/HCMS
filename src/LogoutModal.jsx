@@ -1,3 +1,4 @@
+import React from 'react'
 import { LogOut, X } from "lucide-react";
 
 export default function LogoutModal({ onConfirm, onCancel, userName }) {

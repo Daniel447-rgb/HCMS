@@ -1,3 +1,4 @@
+import React from 'react'
 import { useState, useEffect } from "react";
 import { submitComplaint, listenStudentComplaints } from "./complaintsService.js";
 import LogoutModal from "./LogoutModal.jsx";
