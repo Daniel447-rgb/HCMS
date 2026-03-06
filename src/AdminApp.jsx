@@ -188,7 +188,7 @@ function Topbar({ pageTitle, user }) {
             style={{ fontFamily: "'Playfair Display', serif" }}>{pageTitle}</h2>
         <p className="text-xs text-slate-400 leading-tight">Crawford University Hostels</p>
       </div>
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2 md:gap-3">
         <button className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
                            flex items-center justify-center relative
                            hover:bg-amber-50 hover:border-amber-200 transition-colors group">

@@ -100,7 +100,8 @@ function StatCard({ icon: Icon, iconBg, iconColor, label, value, sub, subColor }
 // ─── SIDEBAR ───────────────────────────────────────────────────────
 function Sidebar({ active, setActive, user, onLogout, openCount, myCount }) {
   return (
-    <aside className="w-64 bg-emerald-700 flex flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xl -translate-x-full md:translate-x-0 transition-transform duration-300">
+    <aside className="w-64 bg-emerald-700 flex flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xl
+                      -translate-x-full md:translate-x-0 transition-transform duration-300">
 
       <div className="px-5 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -192,7 +193,7 @@ function Sidebar({ active, setActive, user, onLogout, openCount, myCount }) {
 }
 
 // ─── TOPBAR ────────────────────────────────────────────────────────
-function Topbar({ pageTitle, user }) {
+function Topbar({ pageTitle, user, onLogout }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
                        gap-4 px-4 md:px-6 sticky top-0 z-20 shadow-sm">
@@ -201,12 +202,19 @@ function Topbar({ pageTitle, user }) {
             style={{ fontFamily: "'Playfair Display', serif" }}>{pageTitle}</h2>
         <p className="text-xs text-slate-400 leading-tight">Crawford University Hostels</p>
       </div>
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2 md:gap-3">
         <button className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
                            flex items-center justify-center relative
                            hover:bg-emerald-50 hover:border-emerald-200 transition-colors group">
           <Bell className="w-4 h-4 text-slate-500 group-hover:text-emerald-700" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
+        </button>
+        <button
+          onClick={onLogout}
+          className="flex md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
+                     items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors group"
+        >
+          <LogOut className="w-4 h-4 text-slate-500 group-hover:text-red-500" />
         </button>
         <div className="w-px h-6 bg-slate-200" />
         <div className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
@@ -275,7 +283,8 @@ function DashboardView({ setActive, user, complaints }) {
         <button
           onClick={() => setActive("open")}
           className="relative z-10 hidden sm:flex items-center gap-2 bg-white text-emerald-700
-                     font-bold text-sm px-5 py-3 rounded-xl shadow hover:bg-emerald-50 transition-colors flex-shrink-0"
+                     font-bold text-sm px-5 py-3 rounded-xl shadow hover:bg-emerald-50
+                     transition-colors flex-shrink-0"
         >
           <ClipboardList className="w-4 h-4" /> View Open Complaints
         </button>
@@ -283,10 +292,10 @@ function DashboardView({ setActive, user, complaints }) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-        <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-blue-600"    label="Open Complaints"  value={open.length}                              sub="Waiting to be claimed"  subColor="text-blue-500"    />
-        <StatCard icon={Wrench}        iconBg="bg-amber-50"   iconColor="text-amber-500"   label="My Active Tasks"  value={mine.filter(c => c.status !== "resolved").length} sub="Claimed by you"   subColor="text-amber-500"   />
-        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="I've Resolved"    value={resolved.length}                          sub="Total resolved by you"  subColor="text-emerald-500" />
-        <StatCard icon={AlertCircle}   iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent.length}                            sub="High priority open"     subColor="text-red-500"     />
+        <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-blue-600"    label="Open Complaints"  value={open.length}                                    sub="Waiting to be claimed"  subColor="text-blue-500"    />
+        <StatCard icon={Wrench}        iconBg="bg-amber-50"   iconColor="text-amber-500"   label="My Active Tasks"  value={mine.filter(c => c.status !== "resolved").length} sub="Claimed by you"         subColor="text-amber-500"   />
+        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="I've Resolved"    value={resolved.length}                                sub="Total resolved by you"  subColor="text-emerald-500" />
+        <StatCard icon={AlertCircle}   iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent.length}                                  sub="High priority open"     subColor="text-red-500"     />
       </div>
 
       {/* Recent open complaints + My Tasks summary */}
@@ -302,7 +311,6 @@ function DashboardView({ setActive, user, complaints }) {
               View all <ChevronRight className="w-3 h-3" />
             </button>
           </div>
-
           {open.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center space-y-2">
@@ -660,7 +668,9 @@ function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user 
                   <p className="text-xs font-semibold text-slate-700 truncate">{c.studentName}</p>
                   <p className="text-[10px] text-slate-400">{c.hostel} · {c.room}</p>
                 </div>
-                <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 flex-shrink-0 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
+                <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded-full
+                                  text-[10px] font-bold ring-1 flex-shrink-0
+                                  ${PRIORITY_CONFIG[c.priority]?.badge}`}>
                   {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)}
                 </span>
               </div>
@@ -726,7 +736,7 @@ export default function PorterApp({ user, onLogout }) {
       />
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
-        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} />
+        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} />
         <main className="flex-1 overflow-auto w-full">
           {active === "dashboard" ? (
             <DashboardView setActive={setActive} user={user} complaints={complaints} />
@@ -764,12 +774,9 @@ export default function PorterApp({ user, onLogout }) {
           { id: "resolved",  icon: CheckCircle2,    label: "Resolved" },
           { id: "profile",   icon: User,            label: "Profile"  },
         ].map(({ id, icon: Icon, label }) => (
-          <button
-            key={id}
-            onClick={() => setActive(id)}
-            className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
-                        ${active === id ? "text-emerald-700" : "text-slate-400"}`}
-          >
+          <button key={id} onClick={() => setActive(id)}
+                  className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
+                              ${active === id ? "text-emerald-700" : "text-slate-400"}`}>
             <Icon className="w-5 h-5" />
             {label}
           </button>

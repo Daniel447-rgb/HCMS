@@ -20,7 +20,6 @@ import {
   Info,
 } from "lucide-react";
 
-// ─── NAVIGATION CONFIG ─────────────────────────────────────────────
 const NAV_SECTIONS = [
   {
     label: "My Complaints",
@@ -76,7 +75,6 @@ const CATEGORY_ICONS = {
   Security: "🔒", Pest: "🐛",       Cleaning: "🧹", Other: "📌",
 };
 
-// ─── REUSABLE COMPONENTS ───────────────────────────────────────────
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.open;
   return (
@@ -90,32 +88,25 @@ function StatusBadge({ status }) {
 
 function StatCard({ icon: Icon, iconBg, iconColor, label, value, sub, subColor }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm
-                    hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="mb-4">
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${iconBg}`}>
           <Icon className={`w-5 h-5 ${iconColor}`} />
         </div>
       </div>
       <p className="text-3xl font-bold text-slate-800 leading-none mb-1"
-         style={{ fontFamily: "'Playfair Display', serif" }}>
-        {value}
-      </p>
+         style={{ fontFamily: "'Playfair Display', serif" }}>{value}</p>
       <p className="text-sm font-medium text-slate-500 mb-1">{label}</p>
-      {sub && (
-        <p className={`text-xs font-semibold ${subColor ?? "text-slate-400"}`}>{sub}</p>
-      )}
+      {sub && <p className={`text-xs font-semibold ${subColor ?? "text-slate-400"}`}>{sub}</p>}
     </div>
   );
 }
 
 function QuickAction({ icon: Icon, iconBg, iconColor, label, desc, onClick }) {
   return (
-    <button
-      onClick={onClick}
-      className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm text-left
-                 hover:shadow-md hover:border-blue-200 transition-all group w-full"
-    >
+    <button onClick={onClick}
+            className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm text-left
+                       hover:shadow-md hover:border-blue-200 transition-all group w-full">
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3
                        ${iconBg} group-hover:scale-105 transition-transform`}>
         <Icon className={`w-5 h-5 ${iconColor}`} />
@@ -138,9 +129,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
           </div>
           <div>
             <p className="text-white font-bold text-base leading-tight"
-               style={{ fontFamily: "'Playfair Display', serif" }}>
-              HostelDesk
-            </p>
+               style={{ fontFamily: "'Playfair Display', serif" }}>HostelDesk</p>
             <p className="text-blue-200 text-[11px] tracking-wide">Crawford University</p>
           </div>
         </div>
@@ -149,9 +138,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
       <div className="mx-4 mt-4 px-4 py-3 bg-white/10 border border-white/20 rounded-xl">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center
-                          text-xs font-bold text-[#1447A3] flex-shrink-0">
-            {user.initials}
-          </div>
+                          text-xs font-bold text-[#1447A3] flex-shrink-0">{user.initials}</div>
           <div>
             <p className="text-white text-xs font-semibold leading-tight">{user.name}</p>
             <p className="text-blue-200 text-[10px]">{user.hostel} · {user.room}</p>
@@ -166,20 +153,14 @@ function Sidebar({ active, setActive, user, onLogout }) {
               {section.label}
             </p>
             {section.items.map((item) => {
-              const Icon     = item.icon;
+              const Icon = item.icon;
               const isActive = active === item.id;
               return (
-                <button
-                  key={item.id}
-                  onClick={() => setActive(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
-                               transition-all duration-150 text-left
-                               ${isActive
-                                 ? "bg-white text-[#1447A3]"
-                                 : "text-blue-100/70 hover:text-white hover:bg-white/10"}`}
-                >
-                  <Icon className={`w-4 h-4 flex-shrink-0
-                    ${isActive ? "text-[#1447A3]" : "text-blue-200"}`} />
+                <button key={item.id} onClick={() => setActive(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
+                                     transition-all duration-150 text-left
+                                     ${isActive ? "bg-white text-[#1447A3]" : "text-blue-100/70 hover:text-white hover:bg-white/10"}`}>
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-[#1447A3]" : "text-blue-200"}`} />
                   <span className="flex-1">{item.label}</span>
                   {item.badge && (
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full
@@ -187,9 +168,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
                       {item.badge}
                     </span>
                   )}
-                  {isActive && (
-                    <ChevronRight className="w-3.5 h-3.5 text-[#1447A3] flex-shrink-0" />
-                  )}
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#1447A3] flex-shrink-0" />}
                 </button>
               );
             })}
@@ -200,20 +179,16 @@ function Sidebar({ active, setActive, user, onLogout }) {
       <div className="p-4 border-t border-white/10 space-y-2">
         <div className="flex items-center gap-2.5 bg-white/6 rounded-xl px-3 py-2.5">
           <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center
-                          text-xs font-bold text-[#1447A3] flex-shrink-0">
-            {user.initials}
-          </div>
+                          text-xs font-bold text-[#1447A3] flex-shrink-0">{user.initials}</div>
           <div className="min-w-0">
             <p className="text-white text-xs font-semibold leading-tight truncate">{user.name}</p>
             <p className="text-white/40 text-[11px]">{user.matric}</p>
           </div>
         </div>
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl
-                     text-blue-200 hover:text-white hover:bg-white/10
-                     transition-all text-sm font-medium"
-        >
+        <button onClick={onLogout}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl
+                           text-blue-200 hover:text-white hover:bg-white/10
+                           transition-all text-sm font-medium">
           <LogOut className="w-4 h-4 flex-shrink-0" />
           <span>Log Out</span>
         </button>
@@ -223,33 +198,32 @@ function Sidebar({ active, setActive, user, onLogout }) {
 }
 
 // ─── TOPBAR ────────────────────────────────────────────────────────
-function Topbar({ pageTitle, user }) {
+function Topbar({ pageTitle, user, onLogout }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
                        gap-4 px-4 md:px-6 sticky top-0 z-20 shadow-sm">
       <div>
         <h2 className="text-lg font-bold text-slate-800"
-            style={{ fontFamily: "'Playfair Display', serif" }}>
-          {pageTitle}
-        </h2>
+            style={{ fontFamily: "'Playfair Display', serif" }}>{pageTitle}</h2>
         <p className="text-xs text-slate-400 leading-tight">Monday, 3 March 2026</p>
       </div>
-
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2 md:gap-3">
         <button className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
                            flex items-center justify-center relative
                            hover:bg-blue-50 hover:border-blue-200 transition-colors group">
           <Bell className="w-4 h-4 text-slate-500 group-hover:text-[#1447A3]" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full
-                           bg-red-500 border-2 border-white" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
         </button>
-
+        <button
+          onClick={onLogout}
+          className="flex md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
+                     items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors group"
+        >
+          <LogOut className="w-4 h-4 text-slate-500 group-hover:text-red-500" />
+        </button>
         <div className="w-px h-6 bg-slate-200" />
-
-        <div className="flex items-center gap-2.5 cursor-pointer
-                        hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
-          <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center
-                          justify-center text-xs font-bold text-white">
+        <div className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
+          <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-xs font-bold text-white">
             {user.initials}
           </div>
           <div className="hidden sm:block">
@@ -276,9 +250,7 @@ function PlaceholderView({ id }) {
       <div className="text-center space-y-4">
         {icons[id] ?? <LayoutDashboard className="w-14 h-14 text-blue-300 mx-auto" />}
         <h2 className="text-xl font-bold text-slate-700"
-            style={{ fontFamily: "'Playfair Display', serif" }}>
-          {PAGE_TITLES[id]}
-        </h2>
+            style={{ fontFamily: "'Playfair Display', serif" }}>{PAGE_TITLES[id]}</h2>
         <p className="text-sm text-slate-400">Coming soon.</p>
       </div>
     </div>
@@ -301,8 +273,6 @@ function DashboardView({ setActive, user }) {
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 w-full">
-
-      {/* Welcome Banner */}
       <div className="bg-[#1447A3] rounded-2xl p-5 md:p-6 flex items-center justify-between
                       shadow-lg overflow-hidden relative">
         <div className="absolute right-0 top-0 w-64 h-full opacity-10 pointer-events-none">
@@ -319,18 +289,14 @@ function DashboardView({ setActive, user }) {
             {user.hostel} · {user.room} &nbsp;·&nbsp; {user.matric}
           </p>
         </div>
-        <button
-          onClick={() => setActive("submit")}
-          className="relative z-10 hidden sm:flex items-center gap-2 bg-white text-[#1447A3]
-                     font-bold text-sm px-5 py-3 rounded-xl shadow
-                     hover:bg-blue-50 transition-colors flex-shrink-0"
-        >
-          <PlusCircle className="w-4 h-4" />
-          New Complaint
+        <button onClick={() => setActive("submit")}
+                className="relative z-10 hidden sm:flex items-center gap-2 bg-white text-[#1447A3]
+                           font-bold text-sm px-5 py-3 rounded-xl shadow
+                           hover:bg-blue-50 transition-colors flex-shrink-0">
+          <PlusCircle className="w-4 h-4" /> New Complaint
         </button>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
         <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value={total}    sub="Since session start" subColor="text-slate-400"   />
         <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"      subColor="text-amber-500"   />
@@ -338,20 +304,15 @@ function DashboardView({ setActive, user }) {
         <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"      subColor="text-red-500"     />
       </div>
 
-      {/* Recent Complaints + Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
-
-        {/* Recent Complaints */}
         <div className="col-span-1 md:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4 text-[#1447A3]" />
               <p className="text-sm font-bold text-slate-700">Recent Complaints</p>
             </div>
-            <button
-              onClick={() => setActive("track")}
-              className="text-xs text-[#1447A3] font-semibold hover:underline flex items-center gap-1"
-            >
+            <button onClick={() => setActive("track")}
+                    className="text-xs text-[#1447A3] font-semibold hover:underline flex items-center gap-1">
               View all <ChevronRight className="w-3 h-3" />
             </button>
           </div>
@@ -361,10 +322,8 @@ function DashboardView({ setActive, user }) {
                 <div className="text-center space-y-2">
                   <ClipboardList className="w-8 h-8 text-slate-200 mx-auto" />
                   <p className="text-sm text-slate-400">No complaints yet.</p>
-                  <button
-                    onClick={() => setActive("submit")}
-                    className="text-[#1447A3] text-xs font-bold hover:underline"
-                  >
+                  <button onClick={() => setActive("submit")}
+                          className="text-[#1447A3] text-xs font-bold hover:underline">
                     Submit your first →
                   </button>
                 </div>
@@ -372,8 +331,7 @@ function DashboardView({ setActive, user }) {
             ) : recent.map((c) => (
               <div key={c.id}
                    className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center
-                                justify-center text-lg flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-lg flex-shrink-0">
                   {CATEGORY_ICONS[c.category] ?? "📌"}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -390,7 +348,6 @@ function DashboardView({ setActive, user }) {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="col-span-1 md:col-span-2 space-y-3">
           <p className="text-sm font-bold text-slate-600 px-1">Quick Actions</p>
           <QuickAction icon={PlusCircle}    iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Submit a Complaint"  desc="Report a new hostel issue" onClick={() => setActive("submit")}  />
@@ -399,9 +356,7 @@ function DashboardView({ setActive, user }) {
         </div>
       </div>
 
-      {/* Notice Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4
-                      flex items-start gap-3">
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-[#1447A3] flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-bold text-[#1447A3]">Complaint Response Policy</p>
@@ -412,7 +367,6 @@ function DashboardView({ setActive, user }) {
           </p>
         </div>
       </div>
-
     </div>
   );
 }
@@ -489,15 +443,12 @@ function SubmitComplaintView({ setActive, user }) {
       <div className="flex items-center justify-center min-h-[80vh] p-6">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-lg
                         p-8 md:p-10 max-w-md w-full text-center space-y-5">
-          <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center
-                          justify-center mx-auto">
+          <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-10 h-10 text-emerald-500" />
           </div>
           <div>
             <h2 className="text-2xl font-bold text-slate-800"
-                style={{ fontFamily: "'Playfair Display', serif" }}>
-              Complaint Submitted!
-            </h2>
+                style={{ fontFamily: "'Playfair Display', serif" }}>Complaint Submitted!</h2>
             <p className="text-slate-500 text-sm mt-2">
               Your complaint has been logged and will be reviewed within 24 hours.
             </p>
@@ -505,9 +456,7 @@ function SubmitComplaintView({ setActive, user }) {
           <div className="bg-[#1447A3] rounded-2xl px-6 py-5">
             <p className="text-blue-200 text-xs uppercase tracking-widest mb-1">Status</p>
             <p className="text-white text-lg font-bold"
-               style={{ fontFamily: "'Playfair Display', serif" }}>
-              Saved to HostelDesk ✓
-            </p>
+               style={{ fontFamily: "'Playfair Display', serif" }}>Saved to HostelDesk ✓</p>
             <p className="text-blue-200 text-xs mt-2">Track it under "My Complaints"</p>
           </div>
           <div className="bg-slate-50 rounded-xl p-4 text-left space-y-2">
@@ -526,21 +475,14 @@ function SubmitComplaintView({ setActive, user }) {
           </div>
           <div className="flex gap-3 pt-2">
             <button
-              onClick={() => {
-                setSubmitted(false);
-                setStep(1);
-                setForm({ hostel: "", room: "", category: "", title: "", description: "", priority: "" });
-              }}
+              onClick={() => { setSubmitted(false); setStep(1); setForm({ hostel: "", room: "", category: "", title: "", description: "", priority: "" }); }}
               className="flex-1 px-4 py-3 rounded-xl border border-slate-200
-                         text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-            >
+                         text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
               Submit Another
             </button>
-            <button
-              onClick={() => setActive("track")}
-              className="flex-1 px-4 py-3 rounded-xl bg-[#1447A3] text-white
-                         text-sm font-semibold hover:bg-blue-800 transition-colors"
-            >
+            <button onClick={() => setActive("track")}
+                    className="flex-1 px-4 py-3 rounded-xl bg-[#1447A3] text-white
+                               text-sm font-semibold hover:bg-blue-800 transition-colors">
               Track Complaint
             </button>
           </div>
@@ -553,15 +495,10 @@ function SubmitComplaintView({ setActive, user }) {
     <div className="p-4 md:p-6 w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800"
-            style={{ fontFamily: "'Playfair Display', serif" }}>
-          Submit a Complaint
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Fill in the details below. Complaints are reviewed within 24 hours.
-        </p>
+            style={{ fontFamily: "'Playfair Display', serif" }}>Submit a Complaint</h1>
+        <p className="text-sm text-slate-400 mt-1">Fill in the details below. Complaints are reviewed within 24 hours.</p>
       </div>
 
-      {/* Step Indicator */}
       <div className="flex items-center mb-8">
         {STEPS.map((s, i) => {
           const done   = s.n < step;
@@ -571,7 +508,7 @@ function SubmitComplaintView({ setActive, user }) {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center
                                  text-sm font-bold transition-all
-                                 ${done   ? "bg-emerald-500 text-white"
+                                 ${done ? "bg-emerald-500 text-white"
                                  : active ? "bg-[#1447A3] text-white ring-4 ring-blue-100"
                                           : "bg-slate-100 text-slate-400"}`}>
                   {done ? <CheckCircle2 className="w-4 h-4" /> : s.icon}
@@ -590,7 +527,6 @@ function SubmitComplaintView({ setActive, user }) {
         })}
       </div>
 
-      {/* Step 1 */}
       {step === 1 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
@@ -605,13 +541,10 @@ function SubmitComplaintView({ setActive, user }) {
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Hostel Block <span className="text-red-500">*</span>
               </label>
-              <select
-                value={form.hostel}
-                onChange={(e) => update("hostel", e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
-                           text-slate-700 bg-white outline-none
-                           focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100 transition-all"
-              >
+              <select value={form.hostel} onChange={(e) => update("hostel", e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                                 text-slate-700 bg-white outline-none
+                                 focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100 transition-all">
                 <option value="">Select your hostel block...</option>
                 {HOSTELS.map((h) => <option key={h} value={h}>{h}</option>)}
               </select>
@@ -620,16 +553,11 @@ function SubmitComplaintView({ setActive, user }) {
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Room Number <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={form.room}
-                onChange={(e) => update("room", e.target.value)}
-                placeholder="e.g. Room 14, Room 7B..."
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
-                           text-slate-700 outline-none
-                           focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100
-                           transition-all placeholder:text-slate-300"
-              />
+              <input type="text" value={form.room} onChange={(e) => update("room", e.target.value)}
+                     placeholder="e.g. Room 14, Room 7B..."
+                     className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                                text-slate-700 outline-none focus:border-[#1447A3] focus:ring-2
+                                focus:ring-blue-100 transition-all placeholder:text-slate-300" />
             </div>
           </div>
           <div className="bg-[#1447A3] rounded-2xl p-6 flex flex-col justify-between">
@@ -637,13 +565,11 @@ function SubmitComplaintView({ setActive, user }) {
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-white text-xl font-bold"
-                  style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h3 className="text-white text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Where is the issue?
               </h3>
               <p className="text-blue-200 text-sm leading-relaxed">
-                Let us know your exact hostel block and room number so the right
-                porter is notified immediately.
+                Let us know your exact hostel block and room number so the right porter is notified immediately.
               </p>
             </div>
             <div className="mt-6 space-y-3">
@@ -658,7 +584,6 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
-      {/* Step 2 */}
       {step === 2 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
@@ -673,35 +598,25 @@ function SubmitComplaintView({ setActive, user }) {
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Complaint Title <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => update("title", e.target.value)}
-                placeholder="Brief title e.g. Burst pipe under sink..."
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
-                           text-slate-700 outline-none
-                           focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100
-                           transition-all placeholder:text-slate-300"
-              />
+              <input type="text" value={form.title} onChange={(e) => update("title", e.target.value)}
+                     placeholder="Brief title e.g. Burst pipe under sink..."
+                     className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                                text-slate-700 outline-none focus:border-[#1447A3] focus:ring-2
+                                focus:ring-blue-100 transition-all placeholder:text-slate-300" />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Description <span className="text-red-500">*</span>
               </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => update("description", e.target.value)}
-                rows={6}
-                placeholder="Describe the issue in detail..."
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
-                           text-slate-700 outline-none resize-none leading-relaxed
-                           focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100
-                           transition-all placeholder:text-slate-300"
-              />
+              <textarea value={form.description} onChange={(e) => update("description", e.target.value)}
+                        rows={6} placeholder="Describe the issue in detail..."
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                                   text-slate-700 outline-none resize-none leading-relaxed
+                                   focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100
+                                   transition-all placeholder:text-slate-300" />
               <div className="flex justify-between">
                 <p className="text-xs text-slate-400">Minimum 20 characters</p>
-                <p className={`text-xs font-semibold
-                  ${form.description.length >= 20 ? "text-emerald-500" : "text-slate-400"}`}>
+                <p className={`text-xs font-semibold ${form.description.length >= 20 ? "text-emerald-500" : "text-slate-400"}`}>
                   {form.description.length} characters
                 </p>
               </div>
@@ -717,15 +632,12 @@ function SubmitComplaintView({ setActive, user }) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => update("category", cat.value)}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2
-                               text-center transition-all
-                               ${form.category === cat.value
-                                 ? "border-[#1447A3] bg-blue-50"
-                                 : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"}`}
-                >
+                <button key={cat.value} onClick={() => update("category", cat.value)}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2
+                                     text-center transition-all
+                                     ${form.category === cat.value
+                                       ? "border-[#1447A3] bg-blue-50"
+                                       : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"}`}>
                   <span className="text-3xl">{cat.icon}</span>
                   <span className={`text-xs font-bold leading-tight
                     ${form.category === cat.value ? "text-[#1447A3]" : "text-slate-600"}`}>
@@ -739,7 +651,6 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
-      {/* Step 3 */}
       {step === 3 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
@@ -752,32 +663,19 @@ function SubmitComplaintView({ setActive, user }) {
             </div>
             <div className="space-y-3">
               {PRIORITIES.map((p) => (
-                <button
-                  key={p.value}
-                  onClick={() => update("priority", p.value)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2
-                               text-left transition-all
-                               ${form.priority === p.value
-                                 ? `${p.border} ${p.bg}`
-                                 : "border-slate-200 bg-white hover:border-slate-300"}`}
-                >
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center
-                                   flex-shrink-0
+                <button key={p.value} onClick={() => update("priority", p.value)}
+                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2
+                                     text-left transition-all
+                                     ${form.priority === p.value ? `${p.border} ${p.bg}` : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0
                                    ${form.priority === p.value ? p.bg : "bg-slate-100"}`}>
-                    <span className={form.priority === p.value ? p.iconColor : "text-slate-400"}>
-                      {p.icon}
-                    </span>
+                    <span className={form.priority === p.value ? p.iconColor : "text-slate-400"}>{p.icon}</span>
                   </div>
                   <div className="flex-1">
-                    <p className={`text-sm font-bold
-                      ${form.priority === p.value ? p.text : "text-slate-700"}`}>
-                      {p.label}
-                    </p>
+                    <p className={`text-sm font-bold ${form.priority === p.value ? p.text : "text-slate-700"}`}>{p.label}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{p.desc}</p>
                   </div>
-                  {form.priority === p.value && (
-                    <CheckCircle2 className={`w-5 h-5 flex-shrink-0 ${p.iconColor}`} />
-                  )}
+                  {form.priority === p.value && <CheckCircle2 className={`w-5 h-5 flex-shrink-0 ${p.iconColor}`} />}
                 </button>
               ))}
             </div>
@@ -787,8 +685,7 @@ function SubmitComplaintView({ setActive, user }) {
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                 <Flame className="w-6 h-6 text-amber-400" />
               </div>
-              <h3 className="text-white text-xl font-bold"
-                  style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h3 className="text-white text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
                 How urgent is it?
               </h3>
               <p className="text-slate-400 text-sm leading-relaxed">
@@ -811,7 +708,6 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
-      {/* Step 4 */}
       {step === 4 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
@@ -825,7 +721,7 @@ function SubmitComplaintView({ setActive, user }) {
             <div className="bg-slate-50 rounded-xl divide-y divide-slate-200">
               {[
                 { label: "Hostel Block", value: form.hostel.split(" (")[0] },
-                { label: "Room Number",  value: form.room                  },
+                { label: "Room Number",  value: form.room },
                 { label: "Category",     value: `${CATEGORY_ICONS[form.category] ?? "📌"} ${form.category}` },
                 { label: "Priority",     value: form.priority.charAt(0).toUpperCase() + form.priority.slice(1) },
               ].map((row) => (
@@ -843,12 +739,9 @@ function SubmitComplaintView({ setActive, user }) {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Description</p>
               <p className="text-sm text-slate-600 leading-relaxed">{form.description}</p>
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3
-                            flex items-start gap-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3">
               <Info className="w-4 h-4 text-[#1447A3] flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-700">
-                Once submitted, your complaint will appear instantly in "My Complaints".
-              </p>
+              <p className="text-xs text-blue-700">Once submitted, your complaint will appear instantly in "My Complaints".</p>
             </div>
           </div>
           <div className="bg-emerald-600 rounded-2xl p-6 flex flex-col justify-between">
@@ -856,8 +749,7 @@ function SubmitComplaintView({ setActive, user }) {
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <CheckCircle2 className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-white text-xl font-bold"
-                  style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h3 className="text-white text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Almost done!
               </h3>
               <p className="text-emerald-100 text-sm leading-relaxed">
@@ -876,41 +768,27 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
-      {/* Nav Buttons */}
       <div className="flex items-center justify-between mt-6">
-        <button
-          onClick={() => setStep((s) => Math.max(1, s - 1))}
-          disabled={step === 1}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200
-                     text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors
-                     disabled:opacity-40 disabled:cursor-not-allowed"
-        >
+        <button onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200
+                           text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors
+                           disabled:opacity-40 disabled:cursor-not-allowed">
           <ChevronRight className="w-4 h-4 rotate-180" /> Back
         </button>
-
         {step < 4 ? (
-          <button
-            onClick={() => setStep((s) => s + 1)}
-            disabled={!canProceed()}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1447A3]
-                       text-white text-sm font-semibold hover:bg-blue-800 transition-colors
-                       disabled:opacity-40 disabled:cursor-not-allowed"
-          >
+          <button onClick={() => setStep((s) => s + 1)} disabled={!canProceed()}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1447A3]
+                             text-white text-sm font-semibold hover:bg-blue-800 transition-colors
+                             disabled:opacity-40 disabled:cursor-not-allowed">
             Continue <ChevronRight className="w-4 h-4" />
           </button>
         ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1447A3]
-                       text-white text-sm font-semibold hover:bg-blue-800 transition-colors
-                       disabled:opacity-60 disabled:cursor-not-allowed"
-          >
+          <button onClick={handleSubmit} disabled={loading}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1447A3]
+                             text-white text-sm font-semibold hover:bg-blue-800 transition-colors
+                             disabled:opacity-60 disabled:cursor-not-allowed">
             {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Submitting…
-              </>
+              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting…</>
             ) : (
               <><CheckCircle2 className="w-4 h-4" /> Submit Complaint</>
             )}
@@ -933,11 +811,11 @@ function MyComplaintsView({ setActive, user }) {
   }, [user.uid]);
 
   const filters = [
-    { key: "all",      label: "All",         count: complaints.length                                       },
-    { key: "urgent",   label: "Urgent",      count: complaints.filter(c => c.status === "urgent").length    },
-    { key: "open",     label: "Open",        count: complaints.filter(c => c.status === "open").length      },
-    { key: "progress", label: "In Progress", count: complaints.filter(c => c.status === "progress").length  },
-    { key: "resolved", label: "Resolved",    count: complaints.filter(c => c.status === "resolved").length  },
+    { key: "all",      label: "All",         count: complaints.length                                      },
+    { key: "urgent",   label: "Urgent",      count: complaints.filter(c => c.status === "urgent").length   },
+    { key: "open",     label: "Open",        count: complaints.filter(c => c.status === "open").length     },
+    { key: "progress", label: "In Progress", count: complaints.filter(c => c.status === "progress").length },
+    { key: "resolved", label: "Resolved",    count: complaints.filter(c => c.status === "resolved").length },
   ];
 
   const filtered = complaints.filter((c) => filter === "all" || c.status === filter);
@@ -946,26 +824,18 @@ function MyComplaintsView({ setActive, user }) {
     const c = selected;
     return (
       <div className="p-4 md:p-6 w-full">
-        <button
-          onClick={() => setSelected(null)}
-          className="flex items-center gap-2 text-sm font-semibold text-[#1447A3]
-                     hover:underline mb-6"
-        >
+        <button onClick={() => setSelected(null)}
+                className="flex items-center gap-2 text-sm font-semibold text-[#1447A3] hover:underline mb-6">
           <ChevronRight className="w-4 h-4 rotate-180" /> Back to My Complaints
         </button>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="col-span-1 md:col-span-2 space-y-5">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">
-                    Complaint
-                  </p>
+                  <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Complaint</p>
                   <h2 className="text-xl font-bold text-slate-800"
-                      style={{ fontFamily: "'Playfair Display', serif" }}>
-                    {c.title}
-                  </h2>
+                      style={{ fontFamily: "'Playfair Display', serif" }}>{c.title}</h2>
                 </div>
                 <StatusBadge status={c.status} />
               </div>
@@ -977,9 +847,7 @@ function MyComplaintsView({ setActive, user }) {
                   { label: "Submitted", value: c.submittedAt                                           },
                 ].map((row) => (
                   <div key={row.label}>
-                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">
-                      {row.label}
-                    </p>
+                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{row.label}</p>
                     <p className="text-sm font-semibold text-slate-700">{row.value}</p>
                   </div>
                 ))}
@@ -998,8 +866,7 @@ function MyComplaintsView({ setActive, user }) {
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Assigned To</p>
                 {c.assignedTo ? (
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center
-                                    justify-center text-white text-xs font-bold">
+                    <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-white text-xs font-bold">
                       {c.assignedTo.split(" ").map(w => w[0]).join("").slice(0, 2)}
                     </div>
                     <span className="text-sm font-semibold text-slate-700">{c.assignedTo}</span>
@@ -1016,19 +883,16 @@ function MyComplaintsView({ setActive, user }) {
             </div>
 
             {c.status === "resolved" && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5
-                              flex items-start gap-4">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-4">
                 <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-bold text-emerald-700">This complaint has been resolved</p>
                   <p className="text-sm text-emerald-600 mt-1">Was your issue fixed properly? Confirm below.</p>
                   <div className="flex gap-3 mt-3">
-                    <button className="px-4 py-2 rounded-xl bg-emerald-500 text-white
-                                       text-xs font-bold hover:bg-emerald-600 transition-colors">
+                    <button className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors">
                       Yes, it's fixed
                     </button>
-                    <button className="px-4 py-2 rounded-xl border border-emerald-300
-                                       text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors">
+                    <button className="px-4 py-2 rounded-xl border border-emerald-300 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors">
                       No, reopen it
                     </button>
                   </div>
@@ -1037,7 +901,6 @@ function MyComplaintsView({ setActive, user }) {
             )}
           </div>
 
-          {/* Timeline */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 h-fit">
             <div className="flex items-center gap-2 mb-5">
               <History className="w-4 h-4 text-[#1447A3]" />
@@ -1047,11 +910,11 @@ function MyComplaintsView({ setActive, user }) {
               <div className="absolute left-3.5 top-0 bottom-0 w-0.5 bg-slate-100" />
               <div className="space-y-6">
                 {[
-                  { event: "Complaint submitted",   done: true                                                        },
-                  { event: "Under review by admin", done: true                                                        },
-                  { event: "Assigned to porter",    done: !!c.assignedTo                                              },
-                  { event: "Work in progress",      done: c.status === "progress" || c.status === "resolved"          },
-                  { event: "Resolved & closed",     done: c.status === "resolved"                                     },
+                  { event: "Complaint submitted",   done: true                                               },
+                  { event: "Under review by admin", done: true                                               },
+                  { event: "Assigned to porter",    done: !!c.assignedTo                                     },
+                  { event: "Work in progress",      done: c.status === "progress" || c.status === "resolved" },
+                  { event: "Resolved & closed",     done: c.status === "resolved"                            },
                 ].map((t, i) => (
                   <div key={i} className="flex items-start gap-4 relative">
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center
@@ -1059,13 +922,10 @@ function MyComplaintsView({ setActive, user }) {
                                      ${t.done ? "bg-[#1447A3] border-[#1447A3]" : "bg-white border-slate-200"}`}>
                       {t.done
                         ? <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                        : <div className="w-2 h-2 rounded-full bg-slate-300" />
-                      }
+                        : <div className="w-2 h-2 rounded-full bg-slate-300" />}
                     </div>
                     <div className="pt-0.5">
-                      <p className={`text-sm font-semibold ${t.done ? "text-slate-700" : "text-slate-400"}`}>
-                        {t.event}
-                      </p>
+                      <p className={`text-sm font-semibold ${t.done ? "text-slate-700" : "text-slate-400"}`}>{t.event}</p>
                     </div>
                   </div>
                 ))}
@@ -1082,32 +942,24 @@ function MyComplaintsView({ setActive, user }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800"
-              style={{ fontFamily: "'Playfair Display', serif" }}>
-            My Complaints
-          </h1>
+              style={{ fontFamily: "'Playfair Display', serif" }}>My Complaints</h1>
           <p className="text-sm text-slate-400 mt-1">Track and manage all your submitted complaints</p>
         </div>
-        <button
-          onClick={() => setActive("submit")}
-          className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1447A3]
-                     text-white text-sm font-semibold hover:bg-blue-800 transition-colors flex-shrink-0"
-        >
+        <button onClick={() => setActive("submit")}
+                className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1447A3]
+                           text-white text-sm font-semibold hover:bg-blue-800 transition-colors flex-shrink-0">
           <PlusCircle className="w-4 h-4" /> New Complaint
         </button>
       </div>
 
-      {/* Filter chips */}
       <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
         {filters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold
-                         border transition-all flex-shrink-0
-                         ${filter === f.key
-                           ? "bg-[#1447A3] text-white border-[#1447A3]"
-                           : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}
-          >
+          <button key={f.key} onClick={() => setFilter(f.key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold
+                               border transition-all flex-shrink-0
+                               ${filter === f.key
+                                 ? "bg-[#1447A3] text-white border-[#1447A3]"
+                                 : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}>
             {f.label}
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
               ${filter === f.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
@@ -1117,35 +969,27 @@ function MyComplaintsView({ setActive, user }) {
         ))}
       </div>
 
-      {/* Empty state */}
       {filtered.length === 0 && (
         <div className="flex items-center justify-center h-64">
           <div className="text-center space-y-3">
             <ClipboardList className="w-12 h-12 text-slate-200 mx-auto" />
             <p className="text-slate-400 font-medium text-sm">No complaints found.</p>
-            <button
-              onClick={() => setActive("submit")}
-              className="text-[#1447A3] text-sm font-bold hover:underline"
-            >
+            <button onClick={() => setActive("submit")}
+                    className="text-[#1447A3] text-sm font-bold hover:underline">
               Submit your first complaint →
             </button>
           </div>
         </div>
       )}
 
-      {/* Complaint Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map((c) => (
-          <div
-            key={c.id}
-            onClick={() => setSelected(c)}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5
-                       hover:shadow-md hover:border-blue-200 cursor-pointer transition-all group"
-          >
+          <div key={c.id} onClick={() => setSelected(c)}
+               className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5
+                          hover:shadow-md hover:border-blue-200 cursor-pointer transition-all group">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center
-                                justify-center text-xl flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl flex-shrink-0">
                   {CATEGORY_ICONS[c.category] ?? "📌"}
                 </div>
                 <div>
@@ -1157,14 +1001,14 @@ function MyComplaintsView({ setActive, user }) {
             </div>
             <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-4">{c.desc}</p>
             <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400">{c.hostel} · {c.room}</span>
-                <span className="text-slate-200">·</span>
-                <span className="text-xs text-slate-400">{c.submittedAt}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs text-slate-400 truncate">{c.hostel} · {c.room}</span>
+                <span className="text-slate-200 flex-shrink-0">·</span>
+                <span className="text-xs text-slate-400 flex-shrink-0">{c.submittedAt}</span>
               </div>
               <span className="text-xs font-semibold text-[#1447A3] group-hover:underline
-                               flex items-center gap-1">
-                View details <ChevronRight className="w-3 h-3" />
+                               flex items-center gap-1 flex-shrink-0 ml-2">
+                View <ChevronRight className="w-3 h-3" />
               </span>
             </div>
           </div>
@@ -1187,14 +1031,10 @@ function HistoryView({ user }) {
 
   return (
     <div className="p-4 md:p-6 w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800"
-              style={{ fontFamily: "'Playfair Display', serif" }}>
-            Complaint History
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">All your resolved and closed complaints</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-800"
+            style={{ fontFamily: "'Playfair Display', serif" }}>Complaint History</h1>
+        <p className="text-sm text-slate-400 mt-1">All your resolved and closed complaints</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -1210,9 +1050,7 @@ function HistoryView({ user }) {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-800"
-                 style={{ fontFamily: "'Playfair Display', serif" }}>
-                {s.value}
-              </p>
+                 style={{ fontFamily: "'Playfair Display', serif" }}>{s.value}</p>
               <p className="text-xs text-slate-400 font-medium">{s.label}</p>
             </div>
           </div>
@@ -1242,9 +1080,7 @@ function HistoryView({ user }) {
                 <tr className="bg-slate-50 border-b border-slate-100">
                   {["Title", "Category", "Location", "Submitted", "Assigned To", "Priority"].map((h) => (
                     <th key={h} className="text-left text-[10px] font-bold text-slate-400
-                                           uppercase tracking-wider px-5 py-3">
-                      {h}
-                    </th>
+                                           uppercase tracking-wider px-5 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1264,8 +1100,7 @@ function HistoryView({ user }) {
                     <td className="px-5 py-4 text-xs text-slate-600 font-medium">{c.assignedTo ?? "—"}</td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full
-                                        text-xs font-bold ring-1
-                                        ${PRIORITY_CONFIG[c.priority]?.badge ?? ""}`}>
+                                        text-xs font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge ?? ""}`}>
                         {c.priority ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1) : "—"}
                       </span>
                     </td>
@@ -1290,30 +1125,23 @@ export default function StudentApp({ user, onLogout }) {
          style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {showLogout && (
-        <LogoutModal
-          userName={user.name}
-          onConfirm={onLogout}
-          onCancel={() => setShowLogout(false)}
-        />
+        <LogoutModal userName={user.name} onConfirm={onLogout} onCancel={() => setShowLogout(false)} />
       )}
 
       <Sidebar active={active} setActive={setActive} user={user} onLogout={() => setShowLogout(true)} />
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
-        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} />
+        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} />
         <main className="flex-1 overflow-auto w-full">
-          {active === "dashboard" ? <DashboardView  setActive={setActive} user={user} /> :
+          {active === "dashboard" ? <DashboardView       setActive={setActive} user={user} /> :
            active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
-           active === "track"     ? <MyComplaintsView   setActive={setActive} user={user} /> :
-           active === "history"   ? <HistoryView user={user} />                              :
-                                    <PlaceholderView id={active} />
-          }
+           active === "track"     ? <MyComplaintsView    setActive={setActive} user={user} /> :
+           active === "history"   ? <HistoryView user={user} />                               :
+                                    <PlaceholderView id={active} />}
         </main>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200
-                      flex md:hidden z-40">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex md:hidden z-40">
         {[
           { id: "dashboard", icon: LayoutDashboard, label: "Home"    },
           { id: "submit",    icon: PlusCircle,      label: "Submit"  },
@@ -1321,12 +1149,9 @@ export default function StudentApp({ user, onLogout }) {
           { id: "history",   icon: History,         label: "History" },
           { id: "profile",   icon: User,            label: "Profile" },
         ].map(({ id, icon: Icon, label }) => (
-          <button
-            key={id}
-            onClick={() => setActive(id)}
-            className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
-                        ${active === id ? "text-[#1447A3]" : "text-slate-400"}`}
-          >
+          <button key={id} onClick={() => setActive(id)}
+                  className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
+                              ${active === id ? "text-[#1447A3]" : "text-slate-400"}`}>
             <Icon className="w-5 h-5" />
             {label}
           </button>
