@@ -58,13 +58,7 @@ const PAGE_TITLES = {
   help:      "Contact Help",
 };
 
-// ─── STATIC SAMPLE DATA (Dashboard only) ──────────────────────────
-const RECENT_COMPLAINTS = [
-  { id: "CU-248", category: "Plumbing",   title: "Burst pipe under bathroom sink",    date: "Today, 8:02am", status: "urgent"   },
-  { id: "CU-241", category: "Electrical", title: "Power socket sparks when charging", date: "Feb 25, 2026",  status: "progress" },
-  { id: "CU-235", category: "Furniture",  title: "Bunk bed frame broken, unsafe",     date: "Feb 18, 2026",  status: "resolved" },
-  { id: "CU-229", category: "Security",   title: "Room door lock not working",         date: "Feb 10, 2026",  status: "resolved" },
-];
+
 
 const STATUS_CONFIG = {
   urgent:   { label: "Urgent",      dot: "bg-red-500",     badge: "bg-red-50 text-red-600 ring-red-200"             },
@@ -300,6 +294,17 @@ function PlaceholderView({ id }) {
 
 // ─── DASHBOARD VIEW ────────────────────────────────────────────────
 function DashboardView({ setActive, user }) {
+  const [complaints, setComplaints] = React.useState([]);
+  React.useEffect(() => {
+    const unsub = listenStudentComplaints(user.uid, setComplaints);
+    return () => unsub();
+  }, [user.uid]);
+
+  const total    = complaints.length;
+  const pending  = complaints.filter(c => c.status === "open" || c.status === "progress").length;
+  const resolved = complaints.filter(c => c.status === "resolved").length;
+  const urgent   = complaints.filter(c => c.status === "urgent").length;
+  const recent   = complaints.slice(0, 4);
   return (
     <div className="p-6 space-y-6 w-full">
 
@@ -332,13 +337,10 @@ function DashboardView({ setActive, user }) {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-        <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value="8" sub="Since session start" subColor="text-slate-400"   />
-        <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value="2" sub="Awaiting action"      subColor="text-amber-500"   />
-        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value="5" sub="↑ Great progress!"    subColor="text-emerald-500" />
-        <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value="1" sub="Needs attention"      subColor="text-red-500"     />
-      </div>
-
+      <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value={total}    sub="Since session start" subColor="text-slate-400"   />
+<StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"      subColor="text-amber-500"   />
+<StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved} sub="↑ Great progress!"    subColor="text-emerald-500" />
+<StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"      subColor="text-red-500"     />
       {/* Recent Complaints + Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
 
@@ -357,7 +359,11 @@ function DashboardView({ setActive, user }) {
             </button>
           </div>
           <div className="divide-y divide-slate-50">
-            {RECENT_COMPLAINTS.map((c) => (
+           {recent.length === 0 ? (
+  <div className="flex items-center justify-center py-10">
+    <p className="text-sm text-slate-400">No complaints yet.</p>
+  </div>
+) : recent.map((c) => (
               <div key={c.id}
                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center
