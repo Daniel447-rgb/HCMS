@@ -4,41 +4,18 @@ import {
   listenAllComplaints,
   claimComplaint,
   updateComplaintStatus,
+  listenStudentNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
 } from "./complaintsService.js";
+import { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import LogoutModal from "./LogoutModal.jsx";
 import {
   LayoutDashboard, ClipboardList, CheckCircle2,
   Bell, User, Building2, ChevronRight, LogOut,
   AlertCircle, Clock, Wrench, MessageSquare, BarChart2,
-  Hand,
+  Hand, BellRing, Info, PlusCircle,
 } from "lucide-react";
-
-
-const NAV_SECTIONS = [
-  {
-    label: "Work Queue",
-    items: [
-      { id: "dashboard", icon: LayoutDashboard, label: "Dashboard"       },
-      { id: "open",      icon: ClipboardList,   label: "Open Complaints" },
-      { id: "mine",      icon: Wrench,          label: "My Tasks"        },
-      { id: "resolved",  icon: CheckCircle2,    label: "Resolved"        },
-    ],
-  },
-  {
-    label: "Hostel",
-    items: [
-      { id: "block",    icon: Building2,     label: "Block Overview" },
-      { id: "notifs",   icon: Bell,          label: "Notifications"  },
-      { id: "messages", icon: MessageSquare, label: "Messages"       },
-    ],
-  },
-  {
-    label: "Account",
-    items: [
-      { id: "profile", icon: User, label: "My Profile" },
-    ],
-  },
-];
 
 const PAGE_TITLES = {
   dashboard: "Dashboard",
@@ -67,6 +44,13 @@ const PRIORITY_CONFIG = {
 const CATEGORY_ICONS = {
   Plumbing: "🔧", Electrical: "💡", Furniture: "🪑",
   Security: "🔒", Pest: "🐛",       Cleaning:  "🧹", Other: "📌",
+};
+
+const NOTIF_CONFIG = {
+  submitted: { icon: ClipboardList, bg: "bg-blue-50",    iconColor: "text-blue-600",    border: "border-blue-100"    },
+  claimed:   { icon: Wrench,        bg: "bg-amber-50",   iconColor: "text-amber-500",   border: "border-amber-100"   },
+  progress:  { icon: Clock,         bg: "bg-purple-50",  iconColor: "text-purple-500",  border: "border-purple-100"  },
+  resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100" },
 };
 
 // ─── REUSABLE ──────────────────────────────────────────────────────
@@ -98,11 +82,36 @@ function StatCard({ icon: Icon, iconBg, iconColor, label, value, sub, subColor }
 }
 
 // ─── SIDEBAR ───────────────────────────────────────────────────────
-function Sidebar({ active, setActive, user, onLogout, openCount, myCount }) {
+function Sidebar({ active, setActive, user, onLogout, openCount, myCount, unreadCount }) {
+  const NAV_SECTIONS = [
+    {
+      label: "Work Queue",
+      items: [
+        { id: "dashboard", icon: LayoutDashboard, label: "Dashboard"       },
+        { id: "open",      icon: ClipboardList,   label: "Open Complaints" },
+        { id: "mine",      icon: Wrench,          label: "My Tasks"        },
+        { id: "resolved",  icon: CheckCircle2,    label: "Resolved"        },
+      ],
+    },
+    {
+      label: "Hostel",
+      items: [
+        { id: "block",    icon: Building2,     label: "Block Overview" },
+        { id: "notifs",   icon: Bell,          label: "Notifications", badge: unreadCount > 0 ? unreadCount : null },
+        { id: "messages", icon: MessageSquare, label: "Messages"       },
+      ],
+    },
+    {
+      label: "Account",
+      items: [
+        { id: "profile", icon: User, label: "My Profile" },
+      ],
+    },
+  ];
+
   return (
     <aside className="w-64 bg-emerald-700 flex flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xl
                       -translate-x-full md:translate-x-0 transition-transform duration-300">
-
       <div className="px-5 py-6 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow">
@@ -138,27 +147,27 @@ function Sidebar({ active, setActive, user, onLogout, openCount, myCount }) {
             {section.items.map((item) => {
               const Icon     = item.icon;
               const isActive = active === item.id;
-              const badge    = item.id === "open" ? (openCount || null)
-                             : item.id === "mine" ? (myCount  || null)
+              const badge    = item.id === "open"   ? (openCount  || null)
+                             : item.id === "mine"   ? (myCount    || null)
+                             : item.badge           ? item.badge
                              : null;
               return (
-                <button
-                  key={item.id}
-                  onClick={() => setActive(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
-                               transition-all duration-150 text-left
-                               ${isActive
-                                 ? "bg-white text-emerald-700"
-                                 : "text-emerald-100/70 hover:text-white hover:bg-white/10"}`}
-                >
+                <button key={item.id} onClick={() => setActive(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
+                                     transition-all duration-150 text-left
+                                     ${isActive
+                                       ? "bg-white text-emerald-700"
+                                       : "text-emerald-100/70 hover:text-white hover:bg-white/10"}`}>
                   <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-emerald-700" : "text-emerald-200"}`} />
                   <span className="flex-1">{item.label}</span>
-                  {badge && (
+                  {badge ? (
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full
-                      ${isActive ? "bg-emerald-700 text-white" : "bg-white/20 text-white"}`}>
+                      ${isActive ? "bg-emerald-700 text-white"
+                        : item.id === "notifs" ? "bg-red-500 text-white"
+                        : "bg-white/20 text-white"}`}>
                       {badge}
                     </span>
-                  )}
+                  ) : null}
                   {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />}
                 </button>
               );
@@ -178,12 +187,10 @@ function Sidebar({ active, setActive, user, onLogout, openCount, myCount }) {
             <p className="text-white/40 text-[11px]">{user.staffId}</p>
           </div>
         </div>
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl
-                     text-emerald-200 hover:text-white hover:bg-white/10
-                     transition-all text-sm font-medium"
-        >
+        <button onClick={onLogout}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl
+                           text-emerald-200 hover:text-white hover:bg-white/10
+                           transition-all text-sm font-medium">
           <LogOut className="w-4 h-4 flex-shrink-0" />
           <span>Log Out</span>
         </button>
@@ -193,7 +200,7 @@ function Sidebar({ active, setActive, user, onLogout, openCount, myCount }) {
 }
 
 // ─── TOPBAR ────────────────────────────────────────────────────────
-function Topbar({ pageTitle, user, onLogout }) {
+function Topbar({ pageTitle, user, onLogout, onNavigate, unreadCount }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
                        gap-4 px-4 md:px-6 sticky top-0 z-20 shadow-sm">
@@ -203,21 +210,27 @@ function Topbar({ pageTitle, user, onLogout }) {
         <p className="text-xs text-slate-400 leading-tight">Crawford University Hostels</p>
       </div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
-        <button className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
+        <button onClick={() => onNavigate("notifs")}
+                className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
                            flex items-center justify-center relative
                            hover:bg-emerald-50 hover:border-emerald-200 transition-colors group">
           <Bell className="w-4 h-4 text-slate-500 group-hover:text-emerald-700" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full
+                             bg-red-500 border-2 border-white flex items-center justify-center
+                             text-[10px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </button>
-        <button
-          onClick={onLogout}
-          className="flex md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
-                     items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors group"
-        >
+        <button onClick={onLogout}
+                className="flex md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
+                           items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors group">
           <LogOut className="w-4 h-4 text-slate-500 group-hover:text-red-500" />
         </button>
         <div className="w-px h-6 bg-slate-200" />
-        <div className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
+        <div onClick={() => onNavigate("profile")}
+             className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
           <div className="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center text-xs font-bold text-white">
             {user.initials}
           </div>
@@ -232,13 +245,318 @@ function Topbar({ pageTitle, user, onLogout }) {
   );
 }
 
+// ─── PROFILE VIEW ──────────────────────────────────────────────────
+function ProfileView({ user }) {
+  const [photo, setPhoto]           = useState(null);
+  const [uploading, setUploading]   = useState(false);
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [pwForm, setPwForm]         = useState({ current: "", newPw: "", confirm: "" });
+  const [pwSaving, setPwSaving]     = useState(false);
+  const [pwMsg, setPwMsg]           = useState(null);
+  const fileRef                     = React.useRef();
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem(`profile_photo_${user.uid}`);
+    if (saved) setPhoto(saved);
+  }, [user.uid]);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      setPhoto(dataUrl);
+      localStorage.setItem(`profile_photo_${user.uid}`, dataUrl);
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePasswordChange = async () => {
+    setPwMsg(null);
+    if (!pwForm.current)                return setPwMsg({ type: "error", text: "Enter your current password."                });
+    if (pwForm.newPw.length < 6)        return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
+    if (pwForm.newPw !== pwForm.confirm) return setPwMsg({ type: "error", text: "Passwords do not match."                    });
+    setPwSaving(true);
+    try {
+      const auth        = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error("No user logged in");
+      const credential = EmailAuthProvider.credential(currentUser.email, pwForm.current);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, pwForm.newPw);
+      setPwMsg({ type: "success", text: "Password updated successfully!" });
+      setPwForm({ current: "", newPw: "", confirm: "" });
+      setShowPwForm(false);
+    } catch (err) {
+      const msg =
+        err.code === "auth/wrong-password"        ? "Current password is incorrect."         :
+        err.code === "auth/weak-password"         ? "New password is too weak."              :
+        err.code === "auth/requires-recent-login" ? "Please log out and log in again first." :
+        err.code === "auth/invalid-credential"    ? "Current password is incorrect."         :
+                                                    `Error: ${err.message}`;
+      setPwMsg({ type: "error", text: msg });
+    }
+    setPwSaving(false);
+  };
+
+  const INFO_ROWS = [
+    { label: "Full Name", value: user.name,              icon: User         },
+    { label: "Staff ID",  value: user.staffId,           icon: ClipboardList },
+    { label: "Block",     value: user.block ?? "All",    icon: Building2     },
+    { label: "Role",      value: "Porter",               icon: CheckCircle2  },
+  ];
+
+  return (
+    <div className="p-4 md:p-6 w-full max-w-2xl mx-auto space-y-5">
+
+      {/* Profile Card */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="h-24 bg-emerald-700 relative">
+          <div className="absolute right-0 top-0 w-64 h-full opacity-10 pointer-events-none">
+            <div className="w-48 h-48 rounded-full bg-white absolute -top-10 -right-10" />
+            <div className="w-32 h-32 rounded-full bg-white absolute bottom-0 right-16" />
+          </div>
+        </div>
+        <div className="px-6 pb-6">
+          <div className="flex items-end justify-between -mt-10 mb-4">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-lg overflow-hidden
+                              bg-emerald-700 flex items-center justify-center">
+                {photo
+                  ? <img src={photo} alt="Profile" className="w-full h-full object-cover" />
+                  : <span className="text-white text-2xl font-bold">{user.initials}</span>}
+              </div>
+              <button onClick={() => fileRef.current.click()} disabled={uploading}
+                      className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-700
+                                 border-2 border-white flex items-center justify-center
+                                 hover:bg-emerald-800 transition-colors disabled:opacity-60">
+                {uploading
+                  ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <PlusCircle className="w-3.5 h-3.5 text-white" />}
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                             bg-emerald-50 text-emerald-700 text-xs font-bold ring-1 ring-emerald-200">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Porter
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800"
+              style={{ fontFamily: "'Playfair Display', serif" }}>{user.name}</h2>
+          <p className="text-sm text-slate-400 mt-0.5">{user.staffId} · {user.block ?? "All Blocks"}</p>
+        </div>
+      </div>
+
+      {/* Info Rows */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+          <User className="w-4 h-4 text-emerald-700" />
+          <p className="text-sm font-bold text-slate-700">Account Information</p>
+        </div>
+        <div className="divide-y divide-slate-50">
+          {INFO_ROWS.map((row) => (
+            <div key={row.label} className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                  <row.icon className="w-4 h-4 text-emerald-700" />
+                </div>
+                <p className="text-sm text-slate-500 font-medium">{row.label}</p>
+              </div>
+              <p className="text-sm font-semibold text-slate-700">{row.value ?? "—"}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Change Password */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <button onClick={() => { setShowPwForm(v => !v); setPwMsg(null); }}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-amber-500" />
+            </div>
+            <p className="text-sm font-bold text-slate-700">Change Password</p>
+          </div>
+          <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showPwForm ? "rotate-90" : ""}`} />
+        </button>
+
+        {showPwForm && (
+          <div className="px-5 pb-5 space-y-4 border-t border-slate-100">
+            <div className="space-y-3 pt-4">
+              {[
+                { key: "current", label: "Current Password", placeholder: "Enter current password" },
+                { key: "newPw",   label: "New Password",     placeholder: "At least 6 characters"  },
+                { key: "confirm", label: "Confirm Password", placeholder: "Repeat new password"    },
+              ].map((f) => (
+                <div key={f.key} className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{f.label}</label>
+                  <input type="password" value={pwForm[f.key]}
+                         onChange={e => setPwForm(p => ({ ...p, [f.key]: e.target.value }))}
+                         placeholder={f.placeholder}
+                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                                    text-slate-700 outline-none focus:border-emerald-500
+                                    focus:ring-2 focus:ring-emerald-100 transition-all placeholder:text-slate-300" />
+                </div>
+              ))}
+            </div>
+            {pwMsg && (
+              <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium
+                ${pwMsg.type === "success"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-red-50 text-red-700 border border-red-200"}`}>
+                {pwMsg.type === "success"
+                  ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  : <AlertCircle  className="w-4 h-4 flex-shrink-0" />}
+                {pwMsg.text}
+              </div>
+            )}
+            <button onClick={handlePasswordChange} disabled={pwSaving}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+                               bg-emerald-700 text-white text-sm font-bold hover:bg-emerald-800
+                               transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+              {pwSaving
+                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Updating…</>
+                : <><CheckCircle2 className="w-4 h-4" /> Update Password</>}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Photo tip */}
+      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-emerald-700 flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-emerald-700">
+          Tap the <strong>+</strong> button on your avatar to upload a profile photo.
+          Photos are stored locally on this device.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── NOTIFICATIONS VIEW ────────────────────────────────────────────
+function NotificationsView({ user }) {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [marking, setMarking]             = useState(false);
+
+  useEffect(() => {
+    const unsub = listenStudentNotifications(user.uid, (data) => {
+      setNotifications(data);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [user.uid]);
+
+  const unread = notifications.filter(n => !n.read).length;
+
+  const handleMarkAll = async () => {
+    if (unread === 0) return;
+    setMarking(true);
+    await markAllNotificationsRead(user.uid);
+    setMarking(false);
+  };
+
+  const handleMarkOne = async (id, isRead) => {
+    if (isRead) return;
+    await markNotificationRead(id);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="w-8 h-8 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 w-full max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800"
+              style={{ fontFamily: "'Playfair Display', serif" }}>Notifications</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            {unread > 0 ? `${unread} unread notification${unread > 1 ? "s" : ""}` : "All caught up!"}
+          </p>
+        </div>
+        {unread > 0 && (
+          <button onClick={handleMarkAll} disabled={marking}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200
+                             text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors
+                             disabled:opacity-50">
+            {marking
+              ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+              : <CheckCircle2 className="w-4 h-4" />}
+            Mark all read
+          </button>
+        )}
+      </div>
+
+      {notifications.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center">
+            <BellRing className="w-9 h-9 text-emerald-300" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-600"
+              style={{ fontFamily: "'Playfair Display', serif" }}>No notifications yet</h2>
+          <p className="text-sm text-slate-400 text-center max-w-xs">
+            Activity related to your assigned complaints will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {notifications.map((n) => {
+            const cfg  = NOTIF_CONFIG[n.type] ?? NOTIF_CONFIG.submitted;
+            const Icon = cfg.icon;
+            return (
+              <div key={n.id} onClick={() => handleMarkOne(n.id, n.read)}
+                   className={`relative bg-white rounded-2xl border shadow-sm p-4 md:p-5
+                               transition-all cursor-pointer hover:shadow-md
+                               ${n.read ? "border-slate-100 opacity-70" : `${cfg.border} ring-1 ring-inset ${cfg.border}`}`}>
+                {!n.read && (
+                  <span className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                )}
+                <div className="flex items-start gap-4">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                    <Icon className={`w-5 h-5 ${cfg.iconColor}`} />
+                  </div>
+                  <div className="flex-1 min-w-0 pr-4">
+                    <p className={`text-sm font-bold leading-tight mb-1
+                      ${n.read ? "text-slate-500" : "text-slate-800"}`}>{n.title}</p>
+                    <p className="text-sm text-slate-500 leading-relaxed">{n.message}</p>
+                    <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {n.createdAt}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {notifications.length > 0 && (
+        <div className="mt-5 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+          <Info className="w-5 h-5 text-emerald-700 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-emerald-700">
+            Tap a notification to mark it as read. You'll be notified when complaint statuses change.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── PLACEHOLDER ───────────────────────────────────────────────────
 function PlaceholderView({ id }) {
   const icons = {
     block:    <Building2     className="w-14 h-14 text-emerald-300 mx-auto" />,
-    notifs:   <Bell          className="w-14 h-14 text-emerald-300 mx-auto" />,
     messages: <MessageSquare className="w-14 h-14 text-emerald-300 mx-auto" />,
-    profile:  <User          className="w-14 h-14 text-emerald-300 mx-auto" />,
   };
   return (
     <div className="flex items-center justify-center h-[70vh]">
@@ -261,8 +579,6 @@ function DashboardView({ setActive, user, complaints }) {
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 w-full">
-
-      {/* Banner */}
       <div className="bg-emerald-700 rounded-2xl p-5 md:p-6 flex items-center justify-between
                       shadow-lg overflow-hidden relative">
         <div className="absolute right-0 top-0 w-64 h-full opacity-10 pointer-events-none">
@@ -280,17 +596,14 @@ function DashboardView({ setActive, user, complaints }) {
             <span className="font-bold text-white">{open.length} open</span> complaints waiting
           </p>
         </div>
-        <button
-          onClick={() => setActive("open")}
-          className="relative z-10 hidden sm:flex items-center gap-2 bg-white text-emerald-700
-                     font-bold text-sm px-5 py-3 rounded-xl shadow hover:bg-emerald-50
-                     transition-colors flex-shrink-0"
-        >
+        <button onClick={() => setActive("open")}
+                className="relative z-10 hidden sm:flex items-center gap-2 bg-white text-emerald-700
+                           font-bold text-sm px-5 py-3 rounded-xl shadow hover:bg-emerald-50
+                           transition-colors flex-shrink-0">
           <ClipboardList className="w-4 h-4" /> View Open Complaints
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
         <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-blue-600"    label="Open Complaints"  value={open.length}                                    sub="Waiting to be claimed"  subColor="text-blue-500"    />
         <StatCard icon={Wrench}        iconBg="bg-amber-50"   iconColor="text-amber-500"   label="My Active Tasks"  value={mine.filter(c => c.status !== "resolved").length} sub="Claimed by you"         subColor="text-amber-500"   />
@@ -298,7 +611,6 @@ function DashboardView({ setActive, user, complaints }) {
         <StatCard icon={AlertCircle}   iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent.length}                                  sub="High priority open"     subColor="text-red-500"     />
       </div>
 
-      {/* Recent open complaints + My Tasks summary */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
         <div className="col-span-1 md:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -338,7 +650,6 @@ function DashboardView({ setActive, user, complaints }) {
           )}
         </div>
 
-        {/* My Tasks summary */}
         <div className="col-span-1 md:col-span-2 space-y-4">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
@@ -421,8 +732,6 @@ function ComplaintDetail({ complaint, onBack, user }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="col-span-1 md:col-span-2 space-y-5">
-
-          {/* Info */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -448,7 +757,6 @@ function ComplaintDetail({ complaint, onBack, user }) {
             </div>
           </div>
 
-          {/* Claim / Claimed banner */}
           {!isResolved && (
             <div className={`rounded-2xl p-5 flex items-center justify-between gap-3
               ${isMine ? "bg-emerald-50 border border-emerald-200"
@@ -485,7 +793,6 @@ function ComplaintDetail({ complaint, onBack, user }) {
             </div>
           )}
 
-          {/* Status Update */}
           {isMine && !isResolved && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6 space-y-4">
               <div className="flex items-center gap-2">
@@ -540,7 +847,6 @@ function ComplaintDetail({ complaint, onBack, user }) {
             </div>
           )}
 
-          {/* Resolved state */}
           {isResolved && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-4">
               <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" />
@@ -553,7 +859,6 @@ function ComplaintDetail({ complaint, onBack, user }) {
           )}
         </div>
 
-        {/* Timeline */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 h-fit">
           <div className="flex items-center gap-2 mb-5">
             <Clock className="w-4 h-4 text-emerald-700" />
@@ -656,9 +961,7 @@ function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user 
                 </div>
                 <StatusBadge status={c.status} />
               </div>
-
               <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-3">{c.desc}</p>
-
               <div className="flex items-center gap-2.5 mb-3 bg-slate-50 rounded-xl px-3 py-2.5">
                 <div className="w-7 h-7 rounded-full bg-emerald-700 flex items-center
                                 justify-center text-[10px] font-bold text-white flex-shrink-0">
@@ -674,7 +977,6 @@ function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user 
                   {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)}
                 </span>
               </div>
-
               {isMine && (
                 <div className="flex items-center gap-2 bg-emerald-50 rounded-xl px-3 py-2 mb-2">
                   <Hand className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
@@ -687,7 +989,6 @@ function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user 
                   <span className="text-xs font-semibold text-slate-500">Claimed by {c.claimedBy}</span>
                 </div>
               )}
-
               <div className="flex items-center justify-between pt-3 border-t border-slate-50">
                 <div className="flex items-center gap-2">
                   <Clock className="w-3 h-3 text-slate-300" />
@@ -708,18 +1009,25 @@ function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user 
 
 // ─── APP ROOT ──────────────────────────────────────────────────────
 export default function PorterApp({ user, onLogout }) {
-  const [active,     setActive]     = useState("dashboard");
-  const [showLogout, setShowLogout] = useState(false);
-  const [complaints, setComplaints] = useState([]);
+  const [active,        setActive]        = useState("dashboard");
+  const [showLogout,    setShowLogout]    = useState(false);
+  const [complaints,    setComplaints]    = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     const unsub = listenAllComplaints(setComplaints);
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const unsub = listenStudentNotifications(user.uid, setNotifications);
+    return () => unsub();
+  }, [user.uid]);
+
   const openComplaints     = complaints.filter(c => c.status === "open" || c.status === "urgent");
   const myComplaints       = complaints.filter(c => c.claimedById === user.uid && c.status !== "resolved");
   const resolvedComplaints = complaints.filter(c => c.status === "resolved");
+  const unreadCount        = notifications.filter(n => !n.read).length;
 
   return (
     <div className="flex min-h-screen bg-slate-50 relative" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -733,10 +1041,17 @@ export default function PorterApp({ user, onLogout }) {
         onLogout={() => setShowLogout(true)}
         openCount={openComplaints.length}
         myCount={myComplaints.length}
+        unreadCount={unreadCount}
       />
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
-        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} />
+        <Topbar
+          pageTitle={PAGE_TITLES[active] ?? active}
+          user={user}
+          onLogout={() => setShowLogout(true)}
+          onNavigate={setActive}
+          unreadCount={unreadCount}
+        />
         <main className="flex-1 overflow-auto w-full">
           {active === "dashboard" ? (
             <DashboardView setActive={setActive} user={user} complaints={complaints} />
@@ -758,26 +1073,36 @@ export default function PorterApp({ user, onLogout }) {
               icon={<CheckCircle2 className="w-5 h-5 text-emerald-600" />}
               complaints={resolvedComplaints} emptyText="No resolved complaints yet." user={user}
             />
+          ) : active === "profile" ? (
+            <ProfileView user={user} />
+          ) : active === "notifs" ? (
+            <NotificationsView user={user} />
           ) : (
             <PlaceholderView id={active} />
           )}
         </main>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200
-                      flex md:hidden z-40">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex md:hidden z-40">
         {[
           { id: "dashboard", icon: LayoutDashboard, label: "Home"     },
           { id: "open",      icon: ClipboardList,   label: "Open"     },
           { id: "mine",      icon: Wrench,          label: "My Tasks" },
-          { id: "resolved",  icon: CheckCircle2,    label: "Resolved" },
+          { id: "notifs",    icon: Bell,            label: "Alerts"   },
           { id: "profile",   icon: User,            label: "Profile"  },
         ].map(({ id, icon: Icon, label }) => (
           <button key={id} onClick={() => setActive(id)}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
+                  className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold relative
                               ${active === id ? "text-emerald-700" : "text-slate-400"}`}>
-            <Icon className="w-5 h-5" />
+            <div className="relative">
+              <Icon className="w-5 h-5" />
+              {id === "notifs" && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 rounded-full
+                                 bg-red-500 flex items-center justify-center text-[9px] font-bold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </div>
             {label}
           </button>
         ))}
