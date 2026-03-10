@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState, useEffect } from "react";
-import { submitComplaint, listenStudentComplaints } from "./complaintsService.js";
+import { submitComplaint, listenStudentComplaints, listenStudentNotifications, markNotificationRead, markAllNotificationsRead } from "./complaintsService.js";
 import { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import LogoutModal from "./LogoutModal.jsx";
 import {
@@ -19,33 +19,10 @@ import {
   CheckCircle2,
   Flame,
   Info,
+  BellRing,
+  Clock,
+  Wrench,
 } from "lucide-react";
-
-const NAV_SECTIONS = [
-  {
-    label: "My Complaints",
-    items: [
-      { id: "dashboard", icon: LayoutDashboard, label: "Dashboard"        },
-      { id: "submit",    icon: PlusCircle,      label: "Submit Complaint" },
-      { id: "track",     icon: ClipboardList,   label: "My Complaints"    },
-      { id: "history",   icon: History,         label: "History"          },
-    ],
-  },
-  {
-    label: "Account",
-    items: [
-      { id: "notifs",  icon: Bell, label: "Notifications", badge: 2 },
-      { id: "profile", icon: User, label: "My Profile"              },
-    ],
-  },
-  {
-    label: "Support",
-    items: [
-      { id: "faq",  icon: HelpCircle,    label: "FAQ"          },
-      { id: "help", icon: MessageCircle, label: "Contact Help" },
-    ],
-  },
-];
 
 const PAGE_TITLES = {
   dashboard: "Dashboard",
@@ -74,6 +51,13 @@ const PRIORITY_CONFIG = {
 const CATEGORY_ICONS = {
   Plumbing: "🔧", Electrical: "💡", Furniture: "🪑",
   Security: "🔒", Pest: "🐛",       Cleaning: "🧹", Other: "📌",
+};
+
+const NOTIF_CONFIG = {
+  submitted: { icon: ClipboardList, bg: "bg-blue-50",    iconColor: "text-[#1447A3]",   border: "border-blue-100" },
+  claimed:   { icon: Wrench,        bg: "bg-amber-50",   iconColor: "text-amber-500",   border: "border-amber-100" },
+  progress:  { icon: Clock,         bg: "bg-purple-50",  iconColor: "text-purple-500",  border: "border-purple-100" },
+  resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100" },
 };
 
 function StatusBadge({ status }) {
@@ -119,7 +103,33 @@ function QuickAction({ icon: Icon, iconBg, iconColor, label, desc, onClick }) {
 }
 
 // ─── SIDEBAR ───────────────────────────────────────────────────────
-function Sidebar({ active, setActive, user, onLogout }) {
+function Sidebar({ active, setActive, user, onLogout, unreadCount }) {
+  const NAV_SECTIONS = [
+    {
+      label: "My Complaints",
+      items: [
+        { id: "dashboard", icon: LayoutDashboard, label: "Dashboard"        },
+        { id: "submit",    icon: PlusCircle,      label: "Submit Complaint" },
+        { id: "track",     icon: ClipboardList,   label: "My Complaints"    },
+        { id: "history",   icon: History,         label: "History"          },
+      ],
+    },
+    {
+      label: "Account",
+      items: [
+        { id: "notifs",  icon: Bell, label: "Notifications", badge: unreadCount > 0 ? unreadCount : null },
+        { id: "profile", icon: User, label: "My Profile" },
+      ],
+    },
+    {
+      label: "Support",
+      items: [
+        { id: "faq",  icon: HelpCircle,    label: "FAQ"          },
+        { id: "help", icon: MessageCircle, label: "Contact Help" },
+      ],
+    },
+  ];
+
   return (
     <aside className="w-64 bg-[#1447A3] flex flex-col fixed top-0 left-0 bottom-0 z-30 shadow-2xl
                       -translate-x-full md:translate-x-0 transition-transform duration-300">
@@ -163,12 +173,12 @@ function Sidebar({ active, setActive, user, onLogout }) {
                                      ${isActive ? "bg-white text-[#1447A3]" : "text-blue-100/70 hover:text-white hover:bg-white/10"}`}>
                   <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-[#1447A3]" : "text-blue-200"}`} />
                   <span className="flex-1">{item.label}</span>
-                  {item.badge && (
+                  {item.badge ? (
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full
-                      ${isActive ? "bg-[#1447A3] text-white" : "bg-white/20 text-white"}`}>
+                      ${isActive ? "bg-[#1447A3] text-white" : "bg-red-500 text-white"}`}>
                       {item.badge}
                     </span>
-                  )}
+                  ) : null}
                   {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#1447A3] flex-shrink-0" />}
                 </button>
               );
@@ -199,7 +209,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
 }
 
 // ─── TOPBAR ────────────────────────────────────────────────────────
-function Topbar({ pageTitle, user, onLogout, onNavigate }) {
+function Topbar({ pageTitle, user, onLogout, onNavigate, unreadCount }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
                        gap-4 px-4 md:px-6 sticky top-0 z-20 shadow-sm">
@@ -209,11 +219,18 @@ function Topbar({ pageTitle, user, onLogout, onNavigate }) {
         <p className="text-xs text-slate-400 leading-tight">Crawford University Hostels</p>
       </div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
-        <button className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
+        <button onClick={() => onNavigate("notifs")}
+                className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
                            flex items-center justify-center relative
                            hover:bg-blue-50 hover:border-blue-200 transition-colors group">
           <Bell className="w-4 h-4 text-slate-500 group-hover:text-[#1447A3]" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full
+                             bg-red-500 border-2 border-white flex items-center justify-center
+                             text-[10px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </button>
         <button onClick={onLogout}
                 className="flex md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
@@ -222,18 +239,136 @@ function Topbar({ pageTitle, user, onLogout, onNavigate }) {
         </button>
         <div className="w-px h-6 bg-slate-200" />
         <div onClick={() => onNavigate("profile")}
-     className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
-  <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-xs font-bold text-white">
-    {user.initials}
-  </div>
-  <div className="hidden sm:block">
-    <p className="text-sm font-semibold text-slate-700 leading-tight">{user.name}</p>
-    <p className="text-[10px] text-slate-400">{user.matric} · Student</p>
-  </div>
-  <ChevronRight className="w-3.5 h-3.5 text-slate-400 ml-1" />
-</div>
+             className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
+          <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-xs font-bold text-white">
+            {user.initials}
+          </div>
+          <div className="hidden sm:block">
+            <p className="text-sm font-semibold text-slate-700 leading-tight">{user.name}</p>
+            <p className="text-[10px] text-slate-400">{user.matric} · Student</p>
+          </div>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 ml-1" />
+        </div>
       </div>
     </header>
+  );
+}
+
+// ─── NOTIFICATIONS VIEW ────────────────────────────────────────────
+function NotificationsView({ user }) {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [marking, setMarking]             = useState(false);
+
+  useEffect(() => {
+    const unsub = listenStudentNotifications(user.uid, (data) => {
+      setNotifications(data);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [user.uid]);
+
+  const unread = notifications.filter(n => !n.read).length;
+
+  const handleMarkAll = async () => {
+    if (unread === 0) return;
+    setMarking(true);
+    await markAllNotificationsRead(user.uid);
+    setMarking(false);
+  };
+
+  const handleMarkOne = async (id, isRead) => {
+    if (isRead) return;
+    await markNotificationRead(id);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="w-8 h-8 border-4 border-blue-100 border-t-[#1447A3] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 w-full max-w-2xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800"
+              style={{ fontFamily: "'Playfair Display', serif" }}>Notifications</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            {unread > 0 ? `${unread} unread notification${unread > 1 ? "s" : ""}` : "All caught up!"}
+          </p>
+        </div>
+        {unread > 0 && (
+          <button onClick={handleMarkAll} disabled={marking}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200
+                             text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors
+                             disabled:opacity-50">
+            {marking
+              ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+              : <CheckCircle2 className="w-4 h-4" />}
+            Mark all read
+          </button>
+        )}
+      </div>
+
+      {/* Empty state */}
+      {notifications.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center">
+            <BellRing className="w-9 h-9 text-blue-300" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-600"
+              style={{ fontFamily: "'Playfair Display', serif" }}>No notifications yet</h2>
+          <p className="text-sm text-slate-400 text-center max-w-xs">
+            You'll be notified here when your complaints are updated by a porter.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {notifications.map((n) => {
+            const cfg = NOTIF_CONFIG[n.type] ?? NOTIF_CONFIG.submitted;
+            const Icon = cfg.icon;
+            return (
+              <div key={n.id} onClick={() => handleMarkOne(n.id, n.read)}
+                   className={`relative bg-white rounded-2xl border shadow-sm p-4 md:p-5
+                               transition-all cursor-pointer hover:shadow-md
+                               ${n.read ? "border-slate-100 opacity-70" : `${cfg.border} ring-1 ring-inset ${cfg.border}`}`}>
+                {/* Unread dot */}
+                {!n.read && (
+                  <span className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-[#1447A3]" />
+                )}
+                <div className="flex items-start gap-4">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                    <Icon className={`w-5 h-5 ${cfg.iconColor}`} />
+                  </div>
+                  <div className="flex-1 min-w-0 pr-4">
+                    <p className={`text-sm font-bold leading-tight mb-1
+                      ${n.read ? "text-slate-500" : "text-slate-800"}`}>{n.title}</p>
+                    <p className="text-sm text-slate-500 leading-relaxed">{n.message}</p>
+                    <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {n.createdAt}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Info tip */}
+      {notifications.length > 0 && (
+        <div className="mt-5 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+          <Info className="w-5 h-5 text-[#1447A3] flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-700">
+            Tap a notification to mark it as read. Notifications are sent whenever your complaint status changes.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -267,49 +402,45 @@ function ProfileView({ user }) {
   };
 
   const handlePasswordChange = async () => {
-  setPwMsg(null);
-  if (!pwForm.current)                 return setPwMsg({ type: "error", text: "Enter your current password."                });
-  if (pwForm.newPw.length < 6)         return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
-  if (pwForm.newPw !== pwForm.confirm)  return setPwMsg({ type: "error", text: "Passwords do not match."                    });
+    setPwMsg(null);
+    if (!pwForm.current)                return setPwMsg({ type: "error", text: "Enter your current password."                });
+    if (pwForm.newPw.length < 6)        return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
+    if (pwForm.newPw !== pwForm.confirm) return setPwMsg({ type: "error", text: "Passwords do not match."                    });
 
-  setPwSaving(true);
-  try {
-    const auth       = getAuth();
-    const currentUser = auth.currentUser;
-    if (!currentUser) throw new Error("No user logged in");
-
-    const credential = EmailAuthProvider.credential(currentUser.email, pwForm.current);
-    await reauthenticateWithCredential(currentUser, credential);
-    await updatePassword(currentUser, pwForm.newPw);
-
-    setPwMsg({ type: "success", text: "Password updated successfully!" });
-    setPwForm({ current: "", newPw: "", confirm: "" });
-    setShowPwForm(false);
-  } catch (err) {
-    console.error("Password update error:", err.code, err.message);
-    const msg =
-      err.code === "auth/wrong-password"        ? "Current password is incorrect."         :
-      err.code === "auth/weak-password"         ? "New password is too weak."              :
-      err.code === "auth/requires-recent-login" ? "Please log out and log in again first." :
-      err.code === "auth/invalid-credential"    ? "Current password is incorrect."         :
-                                                  `Error: ${err.message}`;
-    setPwMsg({ type: "error", text: msg });
-  }
-  setPwSaving(false);
-};
+    setPwSaving(true);
+    try {
+      const auth        = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error("No user logged in");
+      const credential = EmailAuthProvider.credential(currentUser.email, pwForm.current);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, pwForm.newPw);
+      setPwMsg({ type: "success", text: "Password updated successfully!" });
+      setPwForm({ current: "", newPw: "", confirm: "" });
+      setShowPwForm(false);
+    } catch (err) {
+      console.error("Password update error:", err.code, err.message);
+      const msg =
+        err.code === "auth/wrong-password"        ? "Current password is incorrect."         :
+        err.code === "auth/weak-password"         ? "New password is too weak."              :
+        err.code === "auth/requires-recent-login" ? "Please log out and log in again first." :
+        err.code === "auth/invalid-credential"    ? "Current password is incorrect."         :
+                                                    `Error: ${err.message}`;
+      setPwMsg({ type: "error", text: msg });
+    }
+    setPwSaving(false);
+  };
 
   const INFO_ROWS = [
-    { label: "Full Name",     value: user.name,   icon: User          },
-    { label: "Matric Number", value: user.matric, icon: ClipboardList  },
-    { label: "Hostel Block",  value: user.hostel, icon: Building2      },
-    { label: "Room Number",   value: user.room,   icon: Building2      },
-    { label: "Role",          value: "Student",   icon: CheckCircle2   },
+    { label: "Full Name",     value: user.name,   icon: User         },
+    { label: "Matric Number", value: user.matric, icon: ClipboardList },
+    { label: "Hostel Block",  value: user.hostel, icon: Building2     },
+    { label: "Room Number",   value: user.room,   icon: Building2     },
+    { label: "Role",          value: "Student",   icon: CheckCircle2  },
   ];
 
   return (
     <div className="p-4 md:p-6 w-full max-w-2xl mx-auto space-y-5">
-
-      {/* Profile Card */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="h-24 bg-[#1447A3] relative">
           <div className="absolute right-0 top-0 w-64 h-full opacity-10 pointer-events-none">
@@ -347,7 +478,6 @@ function ProfileView({ user }) {
         </div>
       </div>
 
-      {/* Info Rows */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <User className="w-4 h-4 text-[#1447A3]" />
@@ -368,7 +498,6 @@ function ProfileView({ user }) {
         </div>
       </div>
 
-      {/* Change Password */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <button onClick={() => { setShowPwForm(v => !v); setPwMsg(null); }}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors">
@@ -400,7 +529,6 @@ function ProfileView({ user }) {
                 </div>
               ))}
             </div>
-
             {pwMsg && (
               <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium
                 ${pwMsg.type === "success"
@@ -412,7 +540,6 @@ function ProfileView({ user }) {
                 {pwMsg.text}
               </div>
             )}
-
             <button onClick={handlePasswordChange} disabled={pwSaving}
                     className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl
                                bg-[#1447A3] text-white text-sm font-bold hover:bg-blue-800
@@ -425,7 +552,6 @@ function ProfileView({ user }) {
         )}
       </div>
 
-      {/* Photo tip */}
       <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-[#1447A3] flex-shrink-0 mt-0.5" />
         <p className="text-sm text-blue-700">
@@ -433,7 +559,6 @@ function ProfileView({ user }) {
           Photos are stored locally on this device.
         </p>
       </div>
-
     </div>
   );
 }
@@ -441,10 +566,8 @@ function ProfileView({ user }) {
 // ─── PLACEHOLDER ───────────────────────────────────────────────────
 function PlaceholderView({ id }) {
   const icons = {
-    notifs:  <Bell          className="w-14 h-14 text-blue-300 mx-auto" />,
-    profile: <User          className="w-14 h-14 text-blue-300 mx-auto" />,
-    faq:     <HelpCircle    className="w-14 h-14 text-blue-300 mx-auto" />,
-    help:    <MessageCircle className="w-14 h-14 text-blue-300 mx-auto" />,
+    faq:  <HelpCircle    className="w-14 h-14 text-blue-300 mx-auto" />,
+    help: <MessageCircle className="w-14 h-14 text-blue-300 mx-auto" />,
   };
   return (
     <div className="flex items-center justify-center h-[70vh]">
@@ -1307,8 +1430,16 @@ function HistoryView({ user }) {
 
 // ─── APP ROOT ──────────────────────────────────────────────────────
 export default function StudentApp({ user, onLogout }) {
-  const [active, setActive]         = useState("dashboard");
-  const [showLogout, setShowLogout] = useState(false);
+  const [active, setActive]           = useState("dashboard");
+  const [showLogout, setShowLogout]   = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const unsub = listenStudentNotifications(user.uid, setNotifications);
+    return () => unsub();
+  }, [user.uid]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="flex min-h-screen bg-slate-50 relative"
@@ -1318,16 +1449,17 @@ export default function StudentApp({ user, onLogout }) {
         <LogoutModal userName={user.name} onConfirm={onLogout} onCancel={() => setShowLogout(false)} />
       )}
 
-      <Sidebar active={active} setActive={setActive} user={user} onLogout={() => setShowLogout(true)} />
+      <Sidebar active={active} setActive={setActive} user={user} onLogout={() => setShowLogout(true)} unreadCount={unreadCount} />
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
-       <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} onNavigate={setActive} />
+        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} onNavigate={setActive} unreadCount={unreadCount} />
         <main className="flex-1 overflow-auto w-full">
           {active === "dashboard" ? <DashboardView       setActive={setActive} user={user} /> :
            active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
            active === "track"     ? <MyComplaintsView    setActive={setActive} user={user} /> :
            active === "history"   ? <HistoryView         user={user}                        /> :
            active === "profile"   ? <ProfileView         user={user}                        /> :
+           active === "notifs"    ? <NotificationsView   user={user}                        /> :
                                     <PlaceholderView id={active} />}
         </main>
       </div>
@@ -1337,13 +1469,21 @@ export default function StudentApp({ user, onLogout }) {
           { id: "dashboard", icon: LayoutDashboard, label: "Home"    },
           { id: "submit",    icon: PlusCircle,      label: "Submit"  },
           { id: "track",     icon: ClipboardList,   label: "Track"   },
-          { id: "history",   icon: History,         label: "History" },
+          { id: "notifs",    icon: Bell,            label: "Alerts"  },
           { id: "profile",   icon: User,            label: "Profile" },
         ].map(({ id, icon: Icon, label }) => (
           <button key={id} onClick={() => setActive(id)}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold
+                  className={`flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-semibold relative
                               ${active === id ? "text-[#1447A3]" : "text-slate-400"}`}>
-            <Icon className="w-5 h-5" />
+            <div className="relative">
+              <Icon className="w-5 h-5" />
+              {id === "notifs" && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 rounded-full
+                                 bg-red-500 flex items-center justify-center text-[9px] font-bold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </div>
             {label}
           </button>
         ))}

@@ -8,13 +8,15 @@ import {
   onSnapshot,
   query,
   orderBy,
+  where,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 
 // ── Collection references ──────────────────────────────────────────
-const complaintsRef = collection(db, "complaints");
-const usersRef      = collection(db, "users");
+const complaintsRef  = collection(db, "complaints");
+const usersRef       = collection(db, "users");
+const notificationsRef = collection(db, "notifications");
 
 // ─────────────────────────────────────────────────────────────────
 //  COMPLAINTS
@@ -31,6 +33,16 @@ export async function submitComplaint(data) {
     submittedAt:     serverTimestamp(),
     updatedAt:       serverTimestamp(),
   });
+
+  // Notify student that complaint was submitted
+  await createNotification({
+    userId:  data.studentId,
+    type:    "submitted",
+    title:   "Complaint Submitted",
+    message: `Your complaint "${data.title}" has been received and is under review.`,
+    complaintId: ref.id,
+  });
+
   return ref.id;
 }
 
@@ -43,7 +55,6 @@ export function listenAllComplaints(callback) {
 }
 
 // LISTEN to complaints for a specific student — real time
-// Filters client-side to avoid needing a composite index
 export function listenStudentComplaints(studentId, callback) {
   const q = query(complaintsRef, orderBy("submittedAt", "desc"));
   return onSnapshot(q, (snap) => {
@@ -54,21 +65,109 @@ export function listenStudentComplaints(studentId, callback) {
 
 // CLAIM a complaint (Porter self-assigns)
 export async function claimComplaint(complaintId, porterName, porterUid) {
+  // Get complaint data first so we can notify the student
+  const snap = await import("firebase/firestore").then(({ getDoc }) =>
+    getDoc(doc(db, "complaints", complaintId))
+  );
+  const data = snap.data();
+
   await updateDoc(doc(db, "complaints", complaintId), {
     claimedBy:   porterName,
     claimedById: porterUid,
     status:      "progress",
     updatedAt:   serverTimestamp(),
   });
+
+  // Notify the student
+  await createNotification({
+    userId:      data.studentId,
+    type:        "claimed",
+    title:       "Porter Assigned",
+    message:     `${porterName} has claimed your complaint "${data.title}" and is now working on it.`,
+    complaintId,
+  });
 }
 
 // UPDATE complaint status (Porter who claimed it)
 export async function updateComplaintStatus(complaintId, status, notes = "") {
+  // Get complaint data first so we can notify the student
+  const snap = await import("firebase/firestore").then(({ getDoc }) =>
+    getDoc(doc(db, "complaints", complaintId))
+  );
+  const data = snap.data();
+
   await updateDoc(doc(db, "complaints", complaintId), {
     status,
     resolutionNotes: notes,
     updatedAt:       serverTimestamp(),
   });
+
+  // Notify the student based on new status
+  if (status === "progress") {
+    await createNotification({
+      userId:      data.studentId,
+      type:        "progress",
+      title:       "Work In Progress",
+      message:     `Your complaint "${data.title}" is now being actively worked on.`,
+      complaintId,
+    });
+  } else if (status === "resolved") {
+    await createNotification({
+      userId:      data.studentId,
+      type:        "resolved",
+      title:       "Complaint Resolved ✅",
+      message:     `Your complaint "${data.title}" has been resolved. ${notes ? `Note: ${notes}` : ""}`,
+      complaintId,
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  NOTIFICATIONS
+// ─────────────────────────────────────────────────────────────────
+
+// CREATE a notification
+export async function createNotification({ userId, type, title, message, complaintId }) {
+  await addDoc(notificationsRef, {
+    userId,
+    type,
+    title,
+    message,
+    complaintId: complaintId ?? null,
+    read:        false,
+    createdAt:   serverTimestamp(),
+  });
+}
+
+// LISTEN to notifications for a student — real time
+export function listenStudentNotifications(studentId, callback) {
+  const q = query(
+    notificationsRef,
+    where("userId", "==", studentId),
+    orderBy("createdAt", "desc")
+  );
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({
+      id: d.id,
+      ...d.data(),
+      createdAt: d.data().createdAt?.toDate?.()?.toLocaleDateString("en-GB", {
+        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+      }) ?? "Just now",
+    })));
+  });
+}
+
+// MARK a single notification as read
+export async function markNotificationRead(notificationId) {
+  await updateDoc(doc(db, "notifications", notificationId), { read: true });
+}
+
+// MARK ALL notifications as read for a user
+export async function markAllNotificationsRead(studentId) {
+  const { getDocs } = await import("firebase/firestore");
+  const q    = query(notificationsRef, where("userId", "==", studentId), where("read", "==", false));
+  const snap = await getDocs(q);
+  await Promise.all(snap.docs.map(d => updateDoc(d.ref, { read: true })));
 }
 
 // ─────────────────────────────────────────────────────────────────
