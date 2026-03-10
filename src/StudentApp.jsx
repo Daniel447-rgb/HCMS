@@ -205,7 +205,7 @@ function Topbar({ pageTitle, user, onLogout }) {
       <div>
         <h2 className="text-lg font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>{pageTitle}</h2>
-        <p className="text-xs text-slate-400 leading-tight">Monday, 3 March 2026</p>
+        <p className="text-xs text-slate-400 leading-tight">Crawford University Hostels</p>
       </div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
         <button className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
@@ -214,11 +214,9 @@ function Topbar({ pageTitle, user, onLogout }) {
           <Bell className="w-4 h-4 text-slate-500 group-hover:text-[#1447A3]" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
         </button>
-        <button
-          onClick={onLogout}
-          className="flex md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
-                     items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors group"
-        >
+        <button onClick={onLogout}
+                className="flex md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
+                           items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors group">
           <LogOut className="w-4 h-4 text-slate-500 group-hover:text-red-500" />
         </button>
         <div className="w-px h-6 bg-slate-200" />
@@ -234,6 +232,201 @@ function Topbar({ pageTitle, user, onLogout }) {
         </div>
       </div>
     </header>
+  );
+}
+
+// ─── PROFILE VIEW ──────────────────────────────────────────────────
+function ProfileView({ user }) {
+  const [photo, setPhoto]           = useState(null);
+  const [uploading, setUploading]   = useState(false);
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [pwForm, setPwForm]         = useState({ current: "", newPw: "", confirm: "" });
+  const [pwSaving, setPwSaving]     = useState(false);
+  const [pwMsg, setPwMsg]           = useState(null);
+  const fileRef                     = React.useRef();
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem(`profile_photo_${user.uid}`);
+    if (saved) setPhoto(saved);
+  }, [user.uid]);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      setPhoto(dataUrl);
+      localStorage.setItem(`profile_photo_${user.uid}`, dataUrl);
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePasswordChange = async () => {
+    setPwMsg(null);
+    if (!pwForm.current)                return setPwMsg({ type: "error", text: "Enter your current password."            });
+    if (pwForm.newPw.length < 6)        return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
+    if (pwForm.newPw !== pwForm.confirm) return setPwMsg({ type: "error", text: "Passwords do not match."                });
+    setPwSaving(true);
+    try {
+      const { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword } = await import("firebase/auth");
+      const auth       = getAuth();
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, pwForm.current);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      await updatePassword(auth.currentUser, pwForm.newPw);
+      setPwMsg({ type: "success", text: "Password updated successfully!" });
+      setPwForm({ current: "", newPw: "", confirm: "" });
+      setShowPwForm(false);
+    } catch (err) {
+      setPwMsg({
+        type: "error",
+        text: err.code === "auth/wrong-password"
+          ? "Current password is incorrect."
+          : "Failed to update password. Try again.",
+      });
+    }
+    setPwSaving(false);
+  };
+
+  const INFO_ROWS = [
+    { label: "Full Name",     value: user.name,   icon: User          },
+    { label: "Matric Number", value: user.matric, icon: ClipboardList  },
+    { label: "Hostel Block",  value: user.hostel, icon: Building2      },
+    { label: "Room Number",   value: user.room,   icon: Building2      },
+    { label: "Role",          value: "Student",   icon: CheckCircle2   },
+  ];
+
+  return (
+    <div className="p-4 md:p-6 w-full max-w-2xl mx-auto space-y-5">
+
+      {/* Profile Card */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="h-24 bg-[#1447A3] relative">
+          <div className="absolute right-0 top-0 w-64 h-full opacity-10 pointer-events-none">
+            <div className="w-48 h-48 rounded-full bg-white absolute -top-10 -right-10" />
+            <div className="w-32 h-32 rounded-full bg-white absolute bottom-0 right-16" />
+          </div>
+        </div>
+        <div className="px-6 pb-6">
+          <div className="flex items-end justify-between -mt-10 mb-4">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-lg overflow-hidden
+                              bg-[#1447A3] flex items-center justify-center">
+                {photo
+                  ? <img src={photo} alt="Profile" className="w-full h-full object-cover" />
+                  : <span className="text-white text-2xl font-bold">{user.initials}</span>}
+              </div>
+              <button onClick={() => fileRef.current.click()} disabled={uploading}
+                      className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#1447A3]
+                                 border-2 border-white flex items-center justify-center
+                                 hover:bg-blue-800 transition-colors disabled:opacity-60">
+                {uploading
+                  ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <PlusCircle className="w-3.5 h-3.5 text-white" />}
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                             bg-blue-50 text-[#1447A3] text-xs font-bold ring-1 ring-blue-200">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Student
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800"
+              style={{ fontFamily: "'Playfair Display', serif" }}>{user.name}</h2>
+          <p className="text-sm text-slate-400 mt-0.5">{user.matric} · {user.hostel} · {user.room}</p>
+        </div>
+      </div>
+
+      {/* Info Rows */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+          <User className="w-4 h-4 text-[#1447A3]" />
+          <p className="text-sm font-bold text-slate-700">Account Information</p>
+        </div>
+        <div className="divide-y divide-slate-50">
+          {INFO_ROWS.map((row) => (
+            <div key={row.label} className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <row.icon className="w-4 h-4 text-[#1447A3]" />
+                </div>
+                <p className="text-sm text-slate-500 font-medium">{row.label}</p>
+              </div>
+              <p className="text-sm font-semibold text-slate-700">{row.value ?? "—"}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Change Password */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <button onClick={() => { setShowPwForm(v => !v); setPwMsg(null); }}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-amber-500" />
+            </div>
+            <p className="text-sm font-bold text-slate-700">Change Password</p>
+          </div>
+          <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showPwForm ? "rotate-90" : ""}`} />
+        </button>
+
+        {showPwForm && (
+          <div className="px-5 pb-5 space-y-4 border-t border-slate-100">
+            <div className="space-y-3 pt-4">
+              {[
+                { key: "current", label: "Current Password", placeholder: "Enter current password" },
+                { key: "newPw",   label: "New Password",     placeholder: "At least 6 characters"  },
+                { key: "confirm", label: "Confirm Password", placeholder: "Repeat new password"    },
+              ].map((f) => (
+                <div key={f.key} className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{f.label}</label>
+                  <input type="password" value={pwForm[f.key]}
+                         onChange={e => setPwForm(p => ({ ...p, [f.key]: e.target.value }))}
+                         placeholder={f.placeholder}
+                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                                    text-slate-700 outline-none focus:border-[#1447A3]
+                                    focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
+                </div>
+              ))}
+            </div>
+
+            {pwMsg && (
+              <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium
+                ${pwMsg.type === "success"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-red-50 text-red-700 border border-red-200"}`}>
+                {pwMsg.type === "success"
+                  ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  : <AlertCircle  className="w-4 h-4 flex-shrink-0" />}
+                {pwMsg.text}
+              </div>
+            )}
+
+            <button onClick={handlePasswordChange} disabled={pwSaving}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+                               bg-[#1447A3] text-white text-sm font-bold hover:bg-blue-800
+                               transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+              {pwSaving
+                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Updating…</>
+                : <><CheckCircle2 className="w-4 h-4" /> Update Password</>}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Photo tip */}
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-[#1447A3] flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-blue-700">
+          Tap the <strong>+</strong> button on your avatar to upload a profile photo.
+          Photos are stored locally on this device.
+        </p>
+      </div>
+
+    </div>
   );
 }
 
@@ -329,8 +522,7 @@ function DashboardView({ setActive, user }) {
                 </div>
               </div>
             ) : recent.map((c) => (
-              <div key={c.id}
-                   className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+              <div key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-lg flex-shrink-0">
                   {CATEGORY_ICONS[c.category] ?? "📌"}
                 </div>
@@ -449,9 +641,7 @@ function SubmitComplaintView({ setActive, user }) {
           <div>
             <h2 className="text-2xl font-bold text-slate-800"
                 style={{ fontFamily: "'Playfair Display', serif" }}>Complaint Submitted!</h2>
-            <p className="text-slate-500 text-sm mt-2">
-              Your complaint has been logged and will be reviewed within 24 hours.
-            </p>
+            <p className="text-slate-500 text-sm mt-2">Your complaint has been logged and will be reviewed within 24 hours.</p>
           </div>
           <div className="bg-[#1447A3] rounded-2xl px-6 py-5">
             <p className="text-blue-200 text-xs uppercase tracking-widest mb-1">Status</p>
@@ -640,9 +830,7 @@ function SubmitComplaintView({ setActive, user }) {
                                        : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"}`}>
                   <span className="text-3xl">{cat.icon}</span>
                   <span className={`text-xs font-bold leading-tight
-                    ${form.category === cat.value ? "text-[#1447A3]" : "text-slate-600"}`}>
-                    {cat.value}
-                  </span>
+                    ${form.category === cat.value ? "text-[#1447A3]" : "text-slate-600"}`}>{cat.value}</span>
                   <span className="text-[10px] text-slate-400 leading-tight">{cat.desc}</span>
                 </button>
               ))}
@@ -752,9 +940,7 @@ function SubmitComplaintView({ setActive, user }) {
               <h3 className="text-white text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Almost done!
               </h3>
-              <p className="text-emerald-100 text-sm leading-relaxed">
-                Review your complaint carefully before submitting.
-              </p>
+              <p className="text-emerald-100 text-sm leading-relaxed">Review your complaint carefully before submitting.</p>
             </div>
             <div className="mt-6 space-y-3">
               {["Saved to Firestore instantly", "You can track it in real time", "Porter will be notified"].map((tip) => (
@@ -787,11 +973,9 @@ function SubmitComplaintView({ setActive, user }) {
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1447A3]
                              text-white text-sm font-semibold hover:bg-blue-800 transition-colors
                              disabled:opacity-60 disabled:cursor-not-allowed">
-            {loading ? (
-              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting…</>
-            ) : (
-              <><CheckCircle2 className="w-4 h-4" /> Submit Complaint</>
-            )}
+            {loading
+              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting…</>
+              : <><CheckCircle2 className="w-4 h-4" /> Submit Complaint</>}
           </button>
         )}
       </div>
@@ -1065,7 +1249,6 @@ function HistoryView({ user }) {
           </div>
           <span className="text-xs text-slate-400">{complaints.length} complaints</span>
         </div>
-
         {complaints.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-center space-y-2">
@@ -1086,8 +1269,7 @@ function HistoryView({ user }) {
               </thead>
               <tbody>
                 {complaints.map((c) => (
-                  <tr key={c.id}
-                      className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
+                  <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
                     <td className="px-5 py-4 text-sm font-semibold text-slate-700">{c.title}</td>
                     <td className="px-5 py-4">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100
@@ -1136,7 +1318,8 @@ export default function StudentApp({ user, onLogout }) {
           {active === "dashboard" ? <DashboardView       setActive={setActive} user={user} /> :
            active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
            active === "track"     ? <MyComplaintsView    setActive={setActive} user={user} /> :
-           active === "history"   ? <HistoryView user={user} />                               :
+           active === "history"   ? <HistoryView         user={user}                        /> :
+           active === "profile"   ? <ProfileView         user={user}                        /> :
                                     <PlaceholderView id={active} />}
         </main>
       </div>
