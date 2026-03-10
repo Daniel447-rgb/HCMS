@@ -199,7 +199,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
 }
 
 // ─── TOPBAR ────────────────────────────────────────────────────────
-function Topbar({ pageTitle, user, onLogout }) {
+function Topbar({ pageTitle, user, onLogout, onNavigate }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
                        gap-4 px-4 md:px-6 sticky top-0 z-20 shadow-sm">
@@ -221,16 +221,17 @@ function Topbar({ pageTitle, user, onLogout }) {
           <LogOut className="w-4 h-4 text-slate-500 group-hover:text-red-500" />
         </button>
         <div className="w-px h-6 bg-slate-200" />
-        <div className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
-          <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-xs font-bold text-white">
-            {user.initials}
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-semibold text-slate-700 leading-tight">{user.name}</p>
-            <p className="text-[10px] text-slate-400">{user.matric} · Student</p>
-          </div>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400 ml-1" />
-        </div>
+        <div onClick={() => onNavigate("profile")}
+     className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
+  <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-xs font-bold text-white">
+    {user.initials}
+  </div>
+  <div className="hidden sm:block">
+    <p className="text-sm font-semibold text-slate-700 leading-tight">{user.name}</p>
+    <p className="text-[10px] text-slate-400">{user.matric} · Student</p>
+  </div>
+  <ChevronRight className="w-3.5 h-3.5 text-slate-400 ml-1" />
+</div>
       </div>
     </header>
   );
@@ -1320,7 +1321,7 @@ export default function StudentApp({ user, onLogout }) {
       <Sidebar active={active} setActive={setActive} user={user} onLogout={() => setShowLogout(true)} />
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
-        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} />
+       <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} onNavigate={setActive} />
         <main className="flex-1 overflow-auto w-full">
           {active === "dashboard" ? <DashboardView       setActive={setActive} user={user} /> :
            active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
