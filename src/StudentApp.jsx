@@ -1,6 +1,7 @@
 import React from 'react'
 import { useState, useEffect } from "react";
 import { submitComplaint, listenStudentComplaints } from "./complaintsService.js";
+import { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import LogoutModal from "./LogoutModal.jsx";
 import {
   LayoutDashboard,
@@ -265,30 +266,36 @@ function ProfileView({ user }) {
   };
 
   const handlePasswordChange = async () => {
-    setPwMsg(null);
-    if (!pwForm.current)                return setPwMsg({ type: "error", text: "Enter your current password."            });
-    if (pwForm.newPw.length < 6)        return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
-    if (pwForm.newPw !== pwForm.confirm) return setPwMsg({ type: "error", text: "Passwords do not match."                });
-    setPwSaving(true);
-    try {
-      const { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword } = await import("firebase/auth");
-      const auth       = getAuth();
-      const credential = EmailAuthProvider.credential(auth.currentUser.email, pwForm.current);
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      await updatePassword(auth.currentUser, pwForm.newPw);
-      setPwMsg({ type: "success", text: "Password updated successfully!" });
-      setPwForm({ current: "", newPw: "", confirm: "" });
-      setShowPwForm(false);
-    } catch (err) {
-      setPwMsg({
-        type: "error",
-        text: err.code === "auth/wrong-password"
-          ? "Current password is incorrect."
-          : "Failed to update password. Try again.",
-      });
-    }
-    setPwSaving(false);
-  };
+  setPwMsg(null);
+  if (!pwForm.current)                 return setPwMsg({ type: "error", text: "Enter your current password."                });
+  if (pwForm.newPw.length < 6)         return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
+  if (pwForm.newPw !== pwForm.confirm)  return setPwMsg({ type: "error", text: "Passwords do not match."                    });
+
+  setPwSaving(true);
+  try {
+    const auth       = getAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error("No user logged in");
+
+    const credential = EmailAuthProvider.credential(currentUser.email, pwForm.current);
+    await reauthenticateWithCredential(currentUser, credential);
+    await updatePassword(currentUser, pwForm.newPw);
+
+    setPwMsg({ type: "success", text: "Password updated successfully!" });
+    setPwForm({ current: "", newPw: "", confirm: "" });
+    setShowPwForm(false);
+  } catch (err) {
+    console.error("Password update error:", err.code, err.message);
+    const msg =
+      err.code === "auth/wrong-password"        ? "Current password is incorrect."         :
+      err.code === "auth/weak-password"         ? "New password is too weak."              :
+      err.code === "auth/requires-recent-login" ? "Please log out and log in again first." :
+      err.code === "auth/invalid-credential"    ? "Current password is incorrect."         :
+                                                  `Error: ${err.message}`;
+    setPwMsg({ type: "error", text: msg });
+  }
+  setPwSaving(false);
+};
 
   const INFO_ROWS = [
     { label: "Full Name",     value: user.name,   icon: User          },
