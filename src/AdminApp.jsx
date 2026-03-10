@@ -16,7 +16,12 @@ import {
   Wrench, Search, Trash2, Plus, Eye, EyeOff, X, Menu,
 } from "lucide-react";
 
-// ─── NAV ───────────────────────────────────────────────────────────
+// ─── CONSTANTS ─────────────────────────────────────────────────────
+const BLOCKS_LIST = [
+  "Oyo Block", "Edo Block", "Ekiti Block", "Osun 1",
+  "Ondo Hall", "Abesan 1", "Abesan 2", "Anthony 1", "Anthony 2", "Anthony 3",
+];
+
 const NAV_SECTIONS = [
   {
     label: "Overview",
@@ -68,6 +73,18 @@ const CATEGORY_ICONS = {
   Security: "🔒", Pest: "🐛",       Cleaning:  "🧹", Other: "📌",
 };
 
+const CAT_COLORS = [
+  "bg-amber-400", "bg-blue-500", "bg-emerald-500",
+  "bg-purple-500", "bg-red-400", "bg-pink-400", "bg-slate-400",
+];
+
+const HEALTH_CONFIG = {
+  great: { label: "All Clear",        bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500", text: "text-emerald-700" },
+  good:  { label: "Good",             bg: "bg-blue-50",    border: "border-blue-200",    dot: "bg-blue-500",    text: "text-blue-700"    },
+  fair:  { label: "Needs Attention",  bg: "bg-amber-50",   border: "border-amber-200",   dot: "bg-amber-500",   text: "text-amber-700"   },
+  poor:  { label: "High Load",        bg: "bg-red-50",     border: "border-red-200",     dot: "bg-red-500",     text: "text-red-700"     },
+};
+
 // ─── REUSABLE ──────────────────────────────────────────────────────
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.open;
@@ -100,12 +117,10 @@ function StatCard({ icon: Icon, iconBg, iconColor, label, value, sub, subColor }
 function Sidebar({ active, setActive, user, onLogout, open, onClose }) {
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden"
              onClick={onClose} />
       )}
-
       <aside className={`w-64 bg-slate-900 flex flex-col fixed top-0 left-0 bottom-0 z-50 shadow-2xl
                          transition-transform duration-300
                          ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
@@ -195,7 +210,6 @@ function Topbar({ pageTitle, user, onMenuOpen, onLogout }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
                        gap-3 px-4 md:px-6 sticky top-0 z-20 shadow-sm">
-      {/* Hamburger — mobile only */}
       <button onClick={onMenuOpen}
               className="md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
                          flex items-center justify-center hover:bg-amber-50 hover:border-amber-200
@@ -216,15 +230,12 @@ function Topbar({ pageTitle, user, onMenuOpen, onLogout }) {
           <Bell className="w-4 h-4 text-slate-500 group-hover:text-amber-600" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
         </button>
-
-        {/* Mobile logout */}
         <button onClick={onLogout}
                 className="md:hidden w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
                            flex items-center justify-center hover:bg-red-50 hover:border-red-200
                            transition-colors group">
           <LogOut className="w-4 h-4 text-slate-500 group-hover:text-red-500" />
         </button>
-
         <div className="hidden md:flex items-center gap-2.5 cursor-pointer hover:bg-slate-50
                         rounded-xl px-2 py-1.5 transition-colors">
           <div className="w-px h-6 bg-slate-200 mr-1" />
@@ -308,8 +319,8 @@ function AddPorterModal({ onClose, onSuccess }) {
 
         <div className="space-y-4">
           {[
-            { key: "name",    label: "Full Name", type: "text",  placeholder: "Mr. John Doe"           },
-            { key: "email",   label: "Email",     type: "email", placeholder: "porter@crawford.edu.ng" },
+            { key: "name",  label: "Full Name", type: "text",  placeholder: "Mr. John Doe"           },
+            { key: "email", label: "Email",     type: "email", placeholder: "porter@crawford.edu.ng" },
           ].map(f => (
             <div key={f.key} className="space-y-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{f.label} *</label>
@@ -473,7 +484,6 @@ function DashboardView({ setActive, user, complaints, porters }) {
 
       {/* Recent Complaints + Porter Overview */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-5">
-
         <div className="col-span-1 md:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
@@ -498,7 +508,7 @@ function DashboardView({ setActive, user, complaints, porters }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-700 truncate">{c.title}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="text-xs text-slate-400 truncate">{c.hostel} · {c.room}</span>
                       <span className="text-slate-200 hidden sm:inline">·</span>
                       <span className="text-xs text-slate-400 hidden sm:inline truncate">{c.studentName}</span>
@@ -610,8 +620,7 @@ function AllComplaintsView({ complaints }) {
         </div>
       </div>
 
-      {/* Filter pills — horizontally scrollable on mobile */}
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
         {filters.map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
                   className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-full text-sm font-semibold
@@ -696,7 +705,6 @@ function AllComplaintsView({ complaints }) {
                   </div>
                   <StatusBadge status={c.status} />
                 </div>
-
                 <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                   <div>
                     <p className="text-slate-400 font-medium">Student</p>
@@ -717,7 +725,6 @@ function AllComplaintsView({ complaints }) {
                     <p className="text-slate-700 font-semibold">{c.submittedAt}</p>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-50">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
                     {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)} Priority
@@ -790,7 +797,6 @@ function ManagePortersView({ porters, complaints }) {
             const porterActive   = complaints.filter(c => c.claimedById === p.uid && c.status !== "resolved").length;
             const total          = porterResolved + porterActive;
             const rate           = total > 0 ? Math.round((porterResolved / total) * 100) : 0;
-
             return (
               <div key={p.uid} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -811,7 +817,6 @@ function ManagePortersView({ porters, complaints }) {
                     <Trash2 className="w-4 h-4 text-red-400 group-hover:text-red-600" />
                   </button>
                 </div>
-
                 <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4">
                   {[
                     { label: "Active",   value: porterActive,   color: "text-amber-600"   },
@@ -825,7 +830,6 @@ function ManagePortersView({ porters, complaints }) {
                     </div>
                   ))}
                 </div>
-
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-slate-400 font-medium">Resolution rate</span>
@@ -840,6 +844,515 @@ function ManagePortersView({ porters, complaints }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── HOSTEL BLOCKS VIEW ────────────────────────────────────────────
+function HostelBlocksView({ complaints, porters }) {
+  const [selected, setSelected] = useState(null);
+
+  const blockStats = BLOCKS_LIST.map(block => {
+    const blockComplaints = complaints.filter(c =>
+      (c.hostel ?? "").toLowerCase() === block.toLowerCase()
+    );
+    const open     = blockComplaints.filter(c => c.status === "open" || c.status === "urgent").length;
+    const progress = blockComplaints.filter(c => c.status === "progress").length;
+    const resolved = blockComplaints.filter(c => c.status === "resolved").length;
+    const total    = blockComplaints.length;
+    const rate     = total > 0 ? Math.round((resolved / total) * 100) : 0;
+    const assignedPorters = porters.filter(p =>
+      (p.block ?? "").toLowerCase() === block.toLowerCase() ||
+      (p.block ?? "").toLowerCase() === "all blocks"
+    );
+    const health = open === 0 ? "great" : open <= 2 ? "good" : open <= 5 ? "fair" : "poor";
+    return { block, total, open, progress, resolved, rate, assignedPorters, health, blockComplaints };
+  });
+
+  if (selected) {
+    const s   = blockStats.find(b => b.block === selected);
+    const cfg = HEALTH_CONFIG[s.health];
+    const categories = {};
+    s.blockComplaints.forEach(c => {
+      categories[c.category] = (categories[c.category] ?? 0) + 1;
+    });
+
+    return (
+      <div className="p-4 md:p-6 w-full">
+        <button onClick={() => setSelected(null)}
+                className="flex items-center gap-2 text-sm font-semibold text-amber-600 hover:underline mb-6">
+          <ChevronRight className="w-4 h-4 rotate-180" /> Back to All Blocks
+        </button>
+
+        <div className="max-w-3xl mx-auto space-y-5">
+          <div className={`${cfg.bg} border ${cfg.border} rounded-2xl p-5 md:p-6`}>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800"
+                    style={{ fontFamily: "'Playfair Display', serif" }}>{s.block}</h1>
+                <p className="text-sm text-slate-500 mt-1">Crawford University Hostel</p>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                               text-xs font-bold ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
+                <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                {cfg.label}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+              {[
+                { label: "Total",       value: s.total,    color: "text-slate-700"   },
+                { label: "Open",        value: s.open,     color: "text-amber-600"   },
+                { label: "In Progress", value: s.progress, color: "text-blue-600"    },
+                { label: "Resolved",    value: s.resolved, color: "text-emerald-600" },
+              ].map(stat => (
+                <div key={stat.label} className="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <p className={`text-2xl font-bold ${stat.color}`}
+                     style={{ fontFamily: "'Playfair Display', serif" }}>{stat.value}</p>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-slate-700">Resolution Rate</p>
+              <span className="text-lg font-bold text-emerald-600"
+                    style={{ fontFamily: "'Playfair Display', serif" }}>{s.rate}%</span>
+            </div>
+            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${s.rate}%` }} />
+            </div>
+            <p className="text-xs text-slate-400 mt-2">{s.resolved} of {s.total} complaints resolved</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <UserCheck className="w-4 h-4 text-amber-500" />
+              <p className="text-sm font-bold text-slate-700">Assigned Porters</p>
+            </div>
+            {s.assignedPorters.length === 0 ? (
+              <p className="text-sm text-slate-400 italic">No porters assigned to this block.</p>
+            ) : (
+              <div className="space-y-3">
+                {s.assignedPorters.map(p => (
+                  <div key={p.uid} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                    <div className="w-9 h-9 rounded-full bg-emerald-700 flex items-center
+                                    justify-center text-xs font-bold text-white flex-shrink-0">
+                      {p.initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-700 truncate">{p.name}</p>
+                      <p className="text-xs text-slate-400">{p.staffId} · {p.block}</p>
+                    </div>
+                    <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200
+                                     px-2 py-1 rounded-full font-semibold flex-shrink-0">Porter</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {Object.keys(categories).length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart2 className="w-4 h-4 text-amber-500" />
+                <p className="text-sm font-bold text-slate-700">Complaint Categories</p>
+              </div>
+              <div className="space-y-3">
+                {Object.entries(categories).sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-semibold text-slate-600">{CATEGORY_ICONS[cat] ?? "📌"} {cat}</span>
+                      <span className="font-bold text-slate-700">{count}</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-400 rounded-full"
+                           style={{ width: `${Math.round((count / s.total) * 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {s.blockComplaints.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-amber-500" />
+                <p className="text-sm font-bold text-slate-700">Recent Complaints</p>
+              </div>
+              <div className="divide-y divide-slate-50">
+                {s.blockComplaints.slice(0, 5).map(c => (
+                  <div key={c.id} className="flex items-center gap-3 px-5 py-3.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-base flex-shrink-0">
+                      {CATEGORY_ICONS[c.category] ?? "📌"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-700 truncate">{c.title}</p>
+                      <p className="text-xs text-slate-400">{c.room} · {c.studentName}</p>
+                    </div>
+                    <StatusBadge status={c.status} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 w-full">
+      <div className="mb-5 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800"
+            style={{ fontFamily: "'Playfair Display', serif" }}>Hostel Blocks</h1>
+        <p className="text-sm text-slate-400 mt-1">
+          Overview of all {BLOCKS_LIST.length} blocks · tap a block for details
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: "Total Blocks",   value: BLOCKS_LIST.length,                                                        icon: Building2,    bg: "bg-slate-100",  color: "text-slate-700"   },
+          { label: "Active Issues",  value: complaints.filter(c => c.status !== "resolved").length,                    icon: AlertCircle,  bg: "bg-amber-50",   color: "text-amber-600"   },
+          { label: "Resolved",       value: complaints.filter(c => c.status === "resolved").length,                    icon: CheckCircle2, bg: "bg-emerald-50", color: "text-emerald-600" },
+          { label: "Blocks w/ Load", value: blockStats.filter(b => b.health === "fair" || b.health === "poor").length, icon: Flame,        bg: "bg-red-50",     color: "text-red-600"     },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.bg}`}>
+              <s.icon className={`w-5 h-5 ${s.color}`} />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-slate-800"
+                 style={{ fontFamily: "'Playfair Display', serif" }}>{s.value}</p>
+              <p className="text-xs text-slate-400 font-medium">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {blockStats.map(s => {
+          const cfg = HEALTH_CONFIG[s.health];
+          return (
+            <div key={s.block} onClick={() => setSelected(s.block)}
+                 className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5
+                            hover:shadow-md hover:border-amber-200 cursor-pointer transition-all group">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-800 group-hover:text-amber-600 transition-colors"
+                      style={{ fontFamily: "'Playfair Display', serif" }}>{s.block}</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {s.assignedPorters.length} porter{s.assignedPorters.length !== 1 ? "s" : ""} assigned
+                  </p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                                 text-[10px] font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                  {cfg.label}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { label: "Open",     value: s.open,     color: s.open > 0 ? "text-amber-600" : "text-slate-400"    },
+                  { label: "Active",   value: s.progress, color: s.progress > 0 ? "text-blue-600" : "text-slate-400" },
+                  { label: "Resolved", value: s.resolved, color: "text-emerald-600"                                   },
+                ].map(stat => (
+                  <div key={stat.label} className="bg-slate-50 rounded-xl p-2.5 text-center">
+                    <p className={`text-lg font-bold ${stat.color}`}
+                       style={{ fontFamily: "'Playfair Display', serif" }}>{stat.value}</p>
+                    <p className="text-[10px] text-slate-400">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-slate-400">Resolution rate</span>
+                  <span className="font-bold text-emerald-600">{s.rate}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${s.rate}%` }} />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
+                <span className="text-xs text-slate-400">{s.total} total complaint{s.total !== 1 ? "s" : ""}</span>
+                <span className="text-xs font-semibold text-amber-600 group-hover:underline flex items-center gap-1">
+                  View details <ChevronRight className="w-3 h-3" />
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── ANALYTICS VIEW ────────────────────────────────────────────────
+function AnalyticsView({ complaints, porters }) {
+  const resolved  = complaints.filter(c => c.status === "resolved");
+  const open      = complaints.filter(c => c.status === "open" || c.status === "urgent");
+  const progress  = complaints.filter(c => c.status === "progress");
+  const totalRate = complaints.length > 0
+    ? Math.round((resolved.length / complaints.length) * 100) : 0;
+
+  const categories = {};
+  complaints.forEach(c => { categories[c.category] = (categories[c.category] ?? 0) + 1; });
+  const catEntries = Object.entries(categories).sort((a, b) => b[1] - a[1]);
+  const catMax     = catEntries[0]?.[1] ?? 1;
+
+  const monthlyData = (() => {
+    const now    = new Date();
+    const months = [];
+    for (let i = 6; i >= 0; i--) {
+      const d     = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = d.toLocaleString("default", { month: "short" });
+      const key   = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      months.push({ label, key, count: 0, resolved: 0 });
+    }
+    complaints.forEach(c => {
+      if (!c.submittedAt) return;
+      const d = new Date(c.submittedAt);
+      if (isNaN(d)) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const m   = months.find(m => m.key === key);
+      if (m) { m.count++; if (c.status === "resolved") m.resolved++; }
+    });
+    return months;
+  })();
+  const chartMax = Math.max(...monthlyData.map(m => m.count), 1);
+
+  const porterPerf = porters.map(p => {
+    const claimed   = complaints.filter(c => c.claimedById === p.uid);
+    const pResolved = claimed.filter(c => c.status === "resolved").length;
+    const pActive   = claimed.filter(c => c.status !== "resolved").length;
+    const rate      = claimed.length > 0 ? Math.round((pResolved / claimed.length) * 100) : 0;
+    return { ...p, claimed: claimed.length, resolved: pResolved, active: pActive, rate };
+  }).sort((a, b) => b.resolved - a.resolved);
+
+  const statusDist = [
+    { label: "Open",        value: open.length,     color: "bg-blue-500",    text: "text-blue-600",    pct: complaints.length > 0 ? Math.round((open.length / complaints.length) * 100) : 0     },
+    { label: "In Progress", value: progress.length, color: "bg-amber-400",   text: "text-amber-600",   pct: complaints.length > 0 ? Math.round((progress.length / complaints.length) * 100) : 0 },
+    { label: "Resolved",    value: resolved.length, color: "bg-emerald-500", text: "text-emerald-600", pct: totalRate },
+  ];
+
+  return (
+    <div className="p-4 md:p-6 w-full space-y-5">
+      <div>
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800"
+            style={{ fontFamily: "'Playfair Display', serif" }}>Analytics</h1>
+        <p className="text-sm text-slate-400 mt-1">System-wide performance overview</p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Total Complaints", value: complaints.length, icon: ClipboardList, bg: "bg-blue-50",    color: "text-blue-600",    sub: "All time"             },
+          { label: "Resolution Rate",  value: `${totalRate}%`,  icon: CheckCircle2,  bg: "bg-emerald-50", color: "text-emerald-600", sub: "Of all complaints"    },
+          { label: "Open Issues",      value: open.length,      icon: AlertCircle,   bg: "bg-amber-50",   color: "text-amber-600",   sub: "Awaiting resolution"  },
+          { label: "Active Porters",   value: porters.length,   icon: UserCheck,     bg: "bg-purple-50",  color: "text-purple-600",  sub: "Registered on system" },
+        ].map(k => (
+          <div key={k.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${k.bg}`}>
+              <k.icon className={`w-5 h-5 ${k.color}`} />
+            </div>
+            <p className="text-2xl md:text-3xl font-bold text-slate-800 leading-none mb-1"
+               style={{ fontFamily: "'Playfair Display', serif" }}>{k.value}</p>
+            <p className="text-xs font-medium text-slate-500">{k.label}</p>
+            <p className={`text-xs font-semibold mt-0.5 ${k.color}`}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Complaints over time */}
+        <div className="col-span-1 md:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-5">
+            <BarChart2 className="w-4 h-4 text-amber-500" />
+            <p className="text-sm font-bold text-slate-700">Complaints Over Time</p>
+            <span className="ml-auto text-xs text-slate-400">Last 7 months</span>
+          </div>
+          <div className="flex items-end gap-2 md:gap-3 h-36">
+            {monthlyData.map((m) => (
+              <div key={m.key} className="flex-1 flex flex-col items-center gap-1">
+                <span className="text-[10px] text-slate-400 font-semibold">{m.count > 0 ? m.count : ""}</span>
+                <div className="w-full flex flex-col-reverse gap-0.5">
+                  <div className="w-full bg-amber-400 rounded-t-lg transition-all"
+                       style={{ height: `${Math.round((m.count / chartMax) * 112)}px`, minHeight: m.count > 0 ? "4px" : "0" }} />
+                  {m.resolved > 0 && (
+                    <div className="w-full bg-emerald-500 rounded-t-lg -mb-0.5"
+                         style={{ height: `${Math.round((m.resolved / chartMax) * 112)}px` }} />
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-400">{m.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-400" /><span className="text-xs text-slate-500">Submitted</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-500" /><span className="text-xs text-slate-500">Resolved</span></div>
+          </div>
+        </div>
+
+        {/* Status distribution */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-5">
+            <CheckCircle2 className="w-4 h-4 text-amber-500" />
+            <p className="text-sm font-bold text-slate-700">Status Distribution</p>
+          </div>
+          <div className="flex flex-col gap-3">
+            {statusDist.map(s => (
+              <div key={s.label}>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
+                    <span className="font-semibold text-slate-600">{s.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold ${s.text}`}>{s.value}</span>
+                    <span className="text-slate-400">({s.pct}%)</span>
+                  </div>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full ${s.color} rounded-full transition-all`} style={{ width: `${s.pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 pt-4 border-t border-slate-100 text-center">
+            <p className="text-4xl font-bold text-emerald-600"
+               style={{ fontFamily: "'Playfair Display', serif" }}>{totalRate}%</p>
+            <p className="text-xs text-slate-400 mt-1">Overall resolution rate</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Category breakdown */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-5">
+          <ClipboardList className="w-4 h-4 text-amber-500" />
+          <p className="text-sm font-bold text-slate-700">Complaints by Category</p>
+        </div>
+        {catEntries.length === 0 ? (
+          <p className="text-sm text-slate-400 italic">No data yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            {catEntries.map(([cat, count], i) => (
+              <div key={cat}>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="font-semibold text-slate-600">{CATEGORY_ICONS[cat] ?? "📌"} {cat}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-700">{count}</span>
+                    <span className="text-slate-400">{Math.round((count / complaints.length) * 100)}%</span>
+                  </div>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full ${CAT_COLORS[i % CAT_COLORS.length]} rounded-full`}
+                       style={{ width: `${Math.round((count / catMax) * 100)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Porter performance */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+          <UserCheck className="w-4 h-4 text-amber-500" />
+          <p className="text-sm font-bold text-slate-700">Porter Performance</p>
+        </div>
+        {porterPerf.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-slate-400 italic">No porters registered yet.</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    {["Porter", "Block", "Claimed", "Active", "Resolved", "Resolution Rate"].map(h => (
+                      <th key={h} className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-5 py-3">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {porterPerf.map((p, i) => (
+                    <tr key={p.uid} className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <span className="text-base w-6 text-center flex-shrink-0">
+                            {i === 0 ? "🏆" : i === 1 ? "🥈" : i === 2 ? "🥉"
+                              : <span className="text-xs font-bold text-slate-400">{i + 1}</span>}
+                          </span>
+                          <div className="w-8 h-8 rounded-full bg-emerald-700 flex items-center
+                                          justify-center text-xs font-bold text-white flex-shrink-0">
+                            {p.initials}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-700">{p.name}</p>
+                            <p className="text-xs text-slate-400">{p.staffId}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-slate-500">{p.block}</td>
+                      <td className="px-5 py-3.5 text-sm font-bold text-slate-700">{p.claimed}</td>
+                      <td className="px-5 py-3.5"><span className="text-sm font-bold text-amber-600">{p.active}</span></td>
+                      <td className="px-5 py-3.5"><span className="text-sm font-bold text-emerald-600">{p.resolved}</span></td>
+                      <td className="px-5 py-3.5 w-40">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${p.rate}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-emerald-600 w-8 text-right">{p.rate}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-50">
+              {porterPerf.map((p, i) => (
+                <div key={p.uid} className="flex items-center gap-3 px-4 py-4">
+                  <div className="w-6 text-center flex-shrink-0 text-base">
+                    {i === 0 ? "🏆" : i === 1 ? "🥈" : i === 2 ? "🥉"
+                      : <span className="text-xs font-bold text-slate-400">{i + 1}</span>}
+                  </div>
+                  <div className="w-9 h-9 rounded-full bg-emerald-700 flex items-center
+                                  justify-center text-xs font-bold text-white flex-shrink-0">
+                    {p.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-700 truncate">{p.name}</p>
+                    <p className="text-xs text-slate-400">{p.block}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-amber-600 font-bold">{p.active} active</span>
+                      <span className="text-xs text-emerald-600 font-bold">{p.resolved} resolved</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${p.rate}%` }} />
+                      </div>
+                      <span className="text-xs font-bold text-emerald-600">{p.rate}%</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -866,12 +1379,9 @@ export default function AdminApp({ user, onLogout }) {
       )}
 
       <Sidebar
-        active={active}
-        setActive={setActive}
-        user={user}
+        active={active} setActive={setActive} user={user}
         onLogout={() => setShowLogout(true)}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        open={sidebarOpen} onClose={() => setSidebarOpen(false)}
       />
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen">
@@ -882,10 +1392,12 @@ export default function AdminApp({ user, onLogout }) {
           onLogout={() => setShowLogout(true)}
         />
         <main className="flex-1 overflow-auto w-full">
-          {active === "dashboard"  ? <DashboardView    setActive={setActive} user={user} complaints={complaints} porters={porters} /> :
-           active === "complaints" ? <AllComplaintsView complaints={complaints} /> :
-           active === "porters"    ? <ManagePortersView porters={porters} complaints={complaints} /> :
-                                    <PlaceholderView   id={active} />}
+          {active === "dashboard"  ? <DashboardView     setActive={setActive} user={user} complaints={complaints} porters={porters} /> :
+           active === "complaints" ? <AllComplaintsView  complaints={complaints} /> :
+           active === "porters"    ? <ManagePortersView  porters={porters} complaints={complaints} /> :
+           active === "hostels"    ? <HostelBlocksView   complaints={complaints} porters={porters} /> :
+           active === "analytics"  ? <AnalyticsView      complaints={complaints} porters={porters} /> :
+                                     <PlaceholderView    id={active} />}
         </main>
       </div>
     </div>
