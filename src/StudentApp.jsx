@@ -54,13 +54,12 @@ const CATEGORY_ICONS = {
 };
 
 const NOTIF_CONFIG = {
-  submitted: { icon: ClipboardList, bg: "bg-blue-50",    iconColor: "text-[#1447A3]",   border: "border-blue-100"   },
-  claimed:   { icon: Wrench,        bg: "bg-amber-50",   iconColor: "text-amber-500",   border: "border-amber-100"  },
+  submitted: { icon: ClipboardList, bg: "bg-blue-50",    iconColor: "text-[#1447A3]",   border: "border-blue-100" },
+  claimed:   { icon: Wrench,        bg: "bg-amber-50",   iconColor: "text-amber-500",   border: "border-amber-100" },
   progress:  { icon: Clock,         bg: "bg-purple-50",  iconColor: "text-purple-500",  border: "border-purple-100" },
-  resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100"},
+  resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100" },
 };
 
-// ─── REUSABLE ──────────────────────────────────────────────────────
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.open;
   return (
@@ -74,15 +73,15 @@ function StatusBadge({ status }) {
 
 function StatCard({ icon: Icon, iconBg, iconColor, label, value, sub, subColor }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="mb-3 md:mb-4">
-        <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center ${iconBg}`}>
-          <Icon className={`w-4 h-4 md:w-5 md:h-5 ${iconColor}`} />
+    <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div className="mb-4">
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${iconBg}`}>
+          <Icon className={`w-5 h-5 ${iconColor}`} />
         </div>
       </div>
-      <p className="text-2xl md:text-3xl font-bold text-slate-800 leading-none mb-1"
+      <p className="text-3xl font-bold text-slate-800 leading-none mb-1"
          style={{ fontFamily: "'Playfair Display', serif" }}>{value}</p>
-      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">{label}</p>
+      <p className="text-sm font-medium text-slate-500 mb-1">{label}</p>
       {sub && <p className={`text-xs font-semibold ${subColor ?? "text-slate-400"}`}>{sub}</p>}
     </div>
   );
@@ -214,10 +213,10 @@ function Topbar({ pageTitle, user, onLogout, onNavigate, unreadCount }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
                        gap-4 px-4 md:px-6 sticky top-0 z-20 shadow-sm">
-      <div className="min-w-0">
-        <h2 className="text-base md:text-lg font-bold text-slate-800 truncate"
+      <div>
+        <h2 className="text-lg font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>{pageTitle}</h2>
-        <p className="text-xs text-slate-400 leading-tight hidden sm:block">Crawford University Hostels</p>
+        <p className="text-xs text-slate-400 leading-tight">Crawford University Hostels</p>
       </div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
         <button onClick={() => onNavigate("notifs")}
@@ -241,7 +240,7 @@ function Topbar({ pageTitle, user, onLogout, onNavigate, unreadCount }) {
         <div className="w-px h-6 bg-slate-200" />
         <div onClick={() => onNavigate("profile")}
              className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
-          <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-xs font-bold text-white">
             {user.initials}
           </div>
           <div className="hidden sm:block">
@@ -295,7 +294,7 @@ function NotificationsView({ user }) {
     <div className="p-4 md:p-6 w-full max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800"
+          <h1 className="text-2xl font-bold text-slate-800"
               style={{ fontFamily: "'Playfair Display', serif" }}>Notifications</h1>
           <p className="text-sm text-slate-400 mt-1">
             {unread > 0 ? `${unread} unread notification${unread > 1 ? "s" : ""}` : "All caught up!"}
@@ -328,7 +327,7 @@ function NotificationsView({ user }) {
       ) : (
         <div className="space-y-3">
           {notifications.map((n) => {
-            const cfg  = NOTIF_CONFIG[n.type] ?? NOTIF_CONFIG.submitted;
+            const cfg = NOTIF_CONFIG[n.type] ?? NOTIF_CONFIG.submitted;
             const Icon = cfg.icon;
             return (
               <div key={n.id} onClick={() => handleMarkOne(n.id, n.read)}
@@ -338,9 +337,9 @@ function NotificationsView({ user }) {
                 {!n.read && (
                   <span className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-[#1447A3]" />
                 )}
-                <div className="flex items-start gap-3 md:gap-4">
-                  <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
-                    <Icon className={`w-4 h-4 md:w-5 md:h-5 ${cfg.iconColor}`} />
+                <div className="flex items-start gap-4">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                    <Icon className={`w-5 h-5 ${cfg.iconColor}`} />
                   </div>
                   <div className="flex-1 min-w-0 pr-4">
                     <p className={`text-sm font-bold leading-tight mb-1
@@ -358,7 +357,7 @@ function NotificationsView({ user }) {
       )}
 
       {notifications.length > 0 && (
-        <div className="mt-5 bg-blue-50 border border-blue-200 rounded-2xl px-4 md:px-5 py-4 flex items-start gap-3">
+        <div className="mt-5 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-start gap-3">
           <Info className="w-5 h-5 text-[#1447A3] flex-shrink-0 mt-0.5" />
           <p className="text-sm text-blue-700">
             Tap a notification to mark it as read. Notifications are sent whenever your complaint status changes.
@@ -403,6 +402,7 @@ function ProfileView({ user }) {
     if (!pwForm.current)                return setPwMsg({ type: "error", text: "Enter your current password."                });
     if (pwForm.newPw.length < 6)        return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
     if (pwForm.newPw !== pwForm.confirm) return setPwMsg({ type: "error", text: "Passwords do not match."                    });
+
     setPwSaving(true);
     try {
       const auth        = getAuth();
@@ -415,6 +415,7 @@ function ProfileView({ user }) {
       setPwForm({ current: "", newPw: "", confirm: "" });
       setShowPwForm(false);
     } catch (err) {
+      console.error("Password update error:", err.code, err.message);
       const msg =
         err.code === "auth/wrong-password"        ? "Current password is incorrect."         :
         err.code === "auth/weak-password"         ? "New password is too weak."              :
@@ -427,11 +428,11 @@ function ProfileView({ user }) {
   };
 
   const INFO_ROWS = [
-    { label: "Full Name",     value: user.name,   icon: User          },
-    { label: "Matric Number", value: user.matric, icon: ClipboardList  },
-    { label: "Hostel Block",  value: user.hostel, icon: Building2      },
-    { label: "Room Number",   value: user.room,   icon: Building2      },
-    { label: "Role",          value: "Student",   icon: CheckCircle2   },
+    { label: "Full Name",     value: user.name,   icon: User         },
+    { label: "Matric Number", value: user.matric, icon: ClipboardList },
+    { label: "Hostel Block",  value: user.hostel, icon: Building2     },
+    { label: "Room Number",   value: user.room,   icon: Building2     },
+    { label: "Role",          value: "Student",   icon: CheckCircle2  },
   ];
 
   return (
@@ -504,6 +505,7 @@ function ProfileView({ user }) {
           </div>
           <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showPwForm ? "rotate-90" : ""}`} />
         </button>
+
         {showPwForm && (
           <div className="px-5 pb-5 space-y-4 border-t border-slate-100">
             <div className="space-y-3 pt-4">
@@ -617,12 +619,12 @@ function DashboardView({ setActive, user }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
         <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value={total}    sub="Since session start" subColor="text-slate-400"   />
-        <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"     subColor="text-amber-500"   />
-        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved} sub="↑ Great progress!"   subColor="text-emerald-500" />
-        <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"     subColor="text-red-500"     />
+        <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"      subColor="text-amber-500"   />
+        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved} sub="↑ Great progress!"    subColor="text-emerald-500" />
+        <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"      subColor="text-red-500"     />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
         <div className="col-span-1 md:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
@@ -673,7 +675,7 @@ function DashboardView({ setActive, user }) {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 md:px-5 py-4 flex items-start gap-3">
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-[#1447A3] flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-bold text-[#1447A3]">Complaint Response Policy</p>
@@ -757,9 +759,9 @@ function SubmitComplaintView({ setActive, user }) {
 
   if (submitted) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh] p-4 md:p-6">
+      <div className="flex items-center justify-center min-h-[80vh] p-6">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-lg
-                        p-6 md:p-10 max-w-md w-full text-center space-y-5">
+                        p-8 md:p-10 max-w-md w-full text-center space-y-5">
           <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-10 h-10 text-emerald-500" />
           </div>
@@ -775,21 +777,24 @@ function SubmitComplaintView({ setActive, user }) {
             <p className="text-blue-200 text-xs mt-2">Track it under "My Complaints"</p>
           </div>
           <div className="bg-slate-50 rounded-xl p-4 text-left space-y-2">
-            {[
-              { label: "Category", value: form.category },
-              { label: "Location", value: `${form.hostel.split(" (")[0]} · ${form.room}` },
-              { label: "Priority", value: form.priority.charAt(0).toUpperCase() + form.priority.slice(1) },
-            ].map(r => (
-              <div key={r.label} className="flex justify-between text-sm">
-                <span className="text-slate-400 font-medium">{r.label}</span>
-                <span className="text-slate-700 font-semibold">{r.value}</span>
-              </div>
-            ))}
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400 font-medium">Category</span>
+              <span className="text-slate-700 font-semibold">{form.category}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400 font-medium">Location</span>
+              <span className="text-slate-700 font-semibold">{form.hostel.split(" (")[0]} · {form.room}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400 font-medium">Priority</span>
+              <span className="text-slate-700 font-semibold capitalize">{form.priority}</span>
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => { setSubmitted(false); setStep(1); setForm({ hostel: "", room: "", category: "", title: "", description: "", priority: "" }); }}
-                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200
-                               text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+            <button
+              onClick={() => { setSubmitted(false); setStep(1); setForm({ hostel: "", room: "", category: "", title: "", description: "", priority: "" }); }}
+              className="flex-1 px-4 py-3 rounded-xl border border-slate-200
+                         text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
               Submit Another
             </button>
             <button onClick={() => setActive("track")}
@@ -806,19 +811,19 @@ function SubmitComplaintView({ setActive, user }) {
   return (
     <div className="p-4 md:p-6 w-full">
       <div className="mb-6">
-        <h1 className="text-xl md:text-2xl font-bold text-slate-800"
+        <h1 className="text-2xl font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>Submit a Complaint</h1>
         <p className="text-sm text-slate-400 mt-1">Fill in the details below. Complaints are reviewed within 24 hours.</p>
       </div>
 
-      <div className="flex items-center mb-6 md:mb-8">
+      <div className="flex items-center mb-8">
         {STEPS.map((s, i) => {
           const done   = s.n < step;
           const active = s.n === step;
           return (
             <div key={s.n} className="flex items-center flex-1">
-              <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
-                <div className={`w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center
                                  text-sm font-bold transition-all
                                  ${done ? "bg-emerald-500 text-white"
                                  : active ? "bg-[#1447A3] text-white ring-4 ring-blue-100"
@@ -831,7 +836,7 @@ function SubmitComplaintView({ setActive, user }) {
                 </span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-2 md:mx-3 rounded-full transition-all
+                <div className={`flex-1 h-0.5 mx-3 rounded-full transition-all
                   ${done ? "bg-emerald-400" : "bg-slate-200"}`} />
               )}
             </div>
@@ -841,7 +846,7 @@ function SubmitComplaintView({ setActive, user }) {
 
       {step === 1 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6 space-y-5">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Building2 className="w-5 h-5 text-[#1447A3]" />
@@ -872,7 +877,7 @@ function SubmitComplaintView({ setActive, user }) {
                                 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
             </div>
           </div>
-          <div className="bg-[#1447A3] rounded-2xl p-5 md:p-6 flex flex-col justify-between">
+          <div className="bg-[#1447A3] rounded-2xl p-6 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-white" />
@@ -898,7 +903,7 @@ function SubmitComplaintView({ setActive, user }) {
 
       {step === 2 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6 space-y-5">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <ClipboardList className="w-5 h-5 text-[#1447A3]" />
@@ -934,7 +939,7 @@ function SubmitComplaintView({ setActive, user }) {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6 space-y-5">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Info className="w-5 h-5 text-[#1447A3]" />
@@ -945,15 +950,15 @@ function SubmitComplaintView({ setActive, user }) {
             <div className="grid grid-cols-2 gap-3">
               {CATEGORIES.map((cat) => (
                 <button key={cat.value} onClick={() => update("category", cat.value)}
-                        className={`flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border-2
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2
                                      text-center transition-all
                                      ${form.category === cat.value
                                        ? "border-[#1447A3] bg-blue-50"
                                        : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"}`}>
-                  <span className="text-2xl md:text-3xl">{cat.icon}</span>
+                  <span className="text-3xl">{cat.icon}</span>
                   <span className={`text-xs font-bold leading-tight
                     ${form.category === cat.value ? "text-[#1447A3]" : "text-slate-600"}`}>{cat.value}</span>
-                  <span className="text-[10px] text-slate-400 leading-tight hidden sm:block">{cat.desc}</span>
+                  <span className="text-[10px] text-slate-400 leading-tight">{cat.desc}</span>
                 </button>
               ))}
             </div>
@@ -963,7 +968,7 @@ function SubmitComplaintView({ setActive, user }) {
 
       {step === 3 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6 space-y-5">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Flame className="w-5 h-5 text-[#1447A3]" />
@@ -990,7 +995,7 @@ function SubmitComplaintView({ setActive, user }) {
               ))}
             </div>
           </div>
-          <div className="bg-slate-800 rounded-2xl p-5 md:p-6 flex flex-col justify-between">
+          <div className="bg-slate-800 rounded-2xl p-6 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                 <Flame className="w-6 h-6 text-amber-400" />
@@ -1020,7 +1025,7 @@ function SubmitComplaintView({ setActive, user }) {
 
       {step === 4 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6 space-y-5">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <CheckCircle2 className="w-5 h-5 text-[#1447A3]" />
@@ -1054,7 +1059,7 @@ function SubmitComplaintView({ setActive, user }) {
               <p className="text-xs text-blue-700">Once submitted, your complaint will appear instantly in "My Complaints".</p>
             </div>
           </div>
-          <div className="bg-emerald-600 rounded-2xl p-5 md:p-6 flex flex-col justify-between">
+          <div className="bg-emerald-600 rounded-2xl p-6 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <CheckCircle2 className="w-6 h-6 text-white" />
@@ -1143,7 +1148,7 @@ function MyComplaintsView({ setActive, user }) {
                   <h2 className="text-lg md:text-xl font-bold text-slate-800"
                       style={{ fontFamily: "'Playfair Display', serif" }}>{c.title}</h2>
                 </div>
-                <StatusBadge status={c.status} />
+                <div className="flex-shrink-0"><StatusBadge status={c.status} /></div>
               </div>
               <p className="text-sm text-slate-500 leading-relaxed">{c.desc}</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-slate-100">
@@ -1161,14 +1166,14 @@ function MyComplaintsView({ setActive, user }) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Priority</p>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
                                   text-sm font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
                   {c.priority ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1) : "—"}
                 </span>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Assigned To</p>
                 {c.assignedTo ? (
                   <div className="flex items-center gap-2.5">
@@ -1207,7 +1212,7 @@ function MyComplaintsView({ setActive, user }) {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6 h-fit">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 h-fit">
             <div className="flex items-center gap-2 mb-5">
               <History className="w-4 h-4 text-[#1447A3]" />
               <p className="text-sm font-bold text-slate-700">Complaint Timeline</p>
@@ -1243,89 +1248,93 @@ function MyComplaintsView({ setActive, user }) {
     );
   }
 
+  // ── KEY FIX: outer wrapper has NO padding so filter strip can scroll edge-to-edge ──
   return (
-    <div className="p-4 md:p-6 w-full">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800"
-              style={{ fontFamily: "'Playfair Display', serif" }}>My Complaints</h1>
-          <p className="text-sm text-slate-400 mt-1">Track and manage all your submitted complaints</p>
-        </div>
-        <button onClick={() => setActive("submit")}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#1447A3]
-                           text-white text-sm font-semibold hover:bg-blue-800 transition-colors
-                           w-full sm:w-auto flex-shrink-0">
-          <PlusCircle className="w-4 h-4" /> New Complaint
-        </button>
-      </div>
+    <div className="w-full flex flex-col">
 
-      {/* Filter pills — scrollable on mobile */}
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-        {filters.map((f) => (
-          <button key={f.key} onClick={() => setFilter(f.key)}
-                  className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-full text-sm font-semibold
-                               border transition-all flex-shrink-0 whitespace-nowrap
-                               ${filter === f.key
-                                 ? "bg-[#1447A3] text-white border-[#1447A3]"
-                                 : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}>
-            {f.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
-              ${filter === f.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
-              {f.count}
-            </span>
+      {/* Header section — padded */}
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800"
+                style={{ fontFamily: "'Playfair Display', serif" }}>My Complaints</h1>
+            <p className="text-sm text-slate-400 mt-1">Track and manage all your submitted complaints</p>
+          </div>
+          <button onClick={() => setActive("submit")}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#1447A3]
+                             text-white text-sm font-semibold hover:bg-blue-800 transition-colors
+                             w-full sm:w-auto flex-shrink-0">
+            <PlusCircle className="w-4 h-4" /> New Complaint
           </button>
-        ))}
+        </div>
       </div>
 
-      {filtered.length === 0 && (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center space-y-3">
-            <ClipboardList className="w-12 h-12 text-slate-200 mx-auto" />
-            <p className="text-slate-400 font-medium text-sm">No complaints found.</p>
-            <button onClick={() => setActive("submit")}
-                    className="text-[#1447A3] text-sm font-bold hover:underline">
-              Submit your first complaint →
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Complaint cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-        {filtered.map((c) => (
-          <div key={c.id} onClick={() => setSelected(c)}
-               className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5
-                          hover:shadow-md hover:border-blue-200 cursor-pointer transition-all group">
-            <div className="flex items-start justify-between mb-3 gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl flex-shrink-0">
-                  {CATEGORY_ICONS[c.category] ?? "📌"}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-blue-500">{c.category}</p>
-                  <p className="text-sm font-bold text-slate-700 leading-tight truncate">{c.title}</p>
-                </div>
-              </div>
-              <div className="flex-shrink-0">
-                <StatusBadge status={c.status} />
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-3">{c.desc}</p>
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-xs text-slate-400 truncate">{c.hostel} · {c.room}</span>
-                <span className="text-xs text-slate-400">{c.submittedAt}</span>
-              </div>
-              <span className="text-xs font-semibold text-[#1447A3] group-hover:underline
-                               flex items-center gap-1 flex-shrink-0 ml-2">
-                View <ChevronRight className="w-3 h-3" />
+      {/* Filter pills — NO left/right padding clipping, scrolls freely */}
+      <div className="w-full overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="flex items-center gap-2 px-4 md:px-6 pb-3" style={{ width: "max-content", minWidth: "100%" }}>
+          {filters.map((f) => (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-full text-sm font-semibold
+                                 border transition-all whitespace-nowrap flex-shrink-0
+                                 ${filter === f.key
+                                   ? "bg-[#1447A3] text-white border-[#1447A3]"
+                                   : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}>
+              {f.label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
+                ${filter === f.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+                {f.count}
               </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Cards section — padded */}
+      <div className="px-4 md:px-6 pb-4 md:pb-6">
+        {filtered.length === 0 && (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center space-y-3">
+              <ClipboardList className="w-12 h-12 text-slate-200 mx-auto" />
+              <p className="text-slate-400 font-medium text-sm">No complaints found.</p>
+              <button onClick={() => setActive("submit")}
+                      className="text-[#1447A3] text-sm font-bold hover:underline">
+                Submit your first complaint →
+              </button>
             </div>
           </div>
-        ))}
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          {filtered.map((c) => (
+            <div key={c.id} onClick={() => setSelected(c)}
+                 className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5
+                            hover:shadow-md hover:border-blue-200 cursor-pointer transition-all group">
+              <div className="flex items-start justify-between mb-3 gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl flex-shrink-0">
+                    {CATEGORY_ICONS[c.category] ?? "📌"}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-blue-500">{c.category}</p>
+                    <p className="text-sm font-bold text-slate-700 leading-tight truncate">{c.title}</p>
+                  </div>
+                </div>
+                <div className="flex-shrink-0"><StatusBadge status={c.status} /></div>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-3">{c.desc}</p>
+              <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-xs text-slate-400 truncate">{c.hostel} · {c.room}</span>
+                  <span className="text-xs text-slate-400">{c.submittedAt}</span>
+                </div>
+                <span className="text-xs font-semibold text-[#1447A3] group-hover:underline
+                                 flex items-center gap-1 flex-shrink-0 ml-2">
+                  View <ChevronRight className="w-3 h-3" />
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1345,7 +1354,7 @@ function HistoryView({ user }) {
   return (
     <div className="p-4 md:p-6 w-full">
       <div className="mb-6">
-        <h1 className="text-xl md:text-2xl font-bold text-slate-800"
+        <h1 className="text-2xl font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>Complaint History</h1>
         <p className="text-sm text-slate-400 mt-1">All your resolved and closed complaints</p>
       </div>
@@ -1358,7 +1367,7 @@ function HistoryView({ user }) {
         ].map((s) => (
           <div key={s.label}
                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${s.iconBg}`}>
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${s.iconBg}`}>
               <s.Icon className={`w-5 h-5 ${s.iconColor}`} />
             </div>
             <div>
@@ -1371,7 +1380,7 @@ function HistoryView({ user }) {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-[#1447A3]" />
             <p className="text-sm font-bold text-slate-700">Resolved Complaints</p>
@@ -1399,17 +1408,15 @@ function HistoryView({ user }) {
               <tbody>
                 {complaints.map((c) => (
                   <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-700 max-w-[160px]">
-                      <p className="truncate">{c.title}</p>
-                    </td>
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-700">{c.title}</td>
                     <td className="px-5 py-4">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100
-                                       rounded-lg text-xs font-medium text-slate-600 whitespace-nowrap">
+                                       rounded-lg text-xs font-medium text-slate-600">
                         {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">{c.hostel} · {c.room}</td>
-                    <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">{c.submittedAt}</td>
+                    <td className="px-5 py-4 text-xs text-slate-500">{c.hostel} · {c.room}</td>
+                    <td className="px-5 py-4 text-xs text-slate-500">{c.submittedAt}</td>
                     <td className="px-5 py-4 text-xs text-slate-600 font-medium">{c.assignedTo ?? "—"}</td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full
@@ -1430,8 +1437,8 @@ function HistoryView({ user }) {
 
 // ─── APP ROOT ──────────────────────────────────────────────────────
 export default function StudentApp({ user, onLogout }) {
-  const [active, setActive]               = useState("dashboard");
-  const [showLogout, setShowLogout]       = useState(false);
+  const [active, setActive]           = useState("dashboard");
+  const [showLogout, setShowLogout]   = useState(false);
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
@@ -1449,31 +1456,21 @@ export default function StudentApp({ user, onLogout }) {
         <LogoutModal userName={user.name} onConfirm={onLogout} onCancel={() => setShowLogout(false)} />
       )}
 
-      <Sidebar
-        active={active} setActive={setActive} user={user}
-        onLogout={() => setShowLogout(true)} unreadCount={unreadCount}
-      />
+      <Sidebar active={active} setActive={setActive} user={user} onLogout={() => setShowLogout(true)} unreadCount={unreadCount} />
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
-        <Topbar
-          pageTitle={PAGE_TITLES[active] ?? active}
-          user={user}
-          onLogout={() => setShowLogout(true)}
-          onNavigate={setActive}
-          unreadCount={unreadCount}
-        />
+        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} onNavigate={setActive} unreadCount={unreadCount} />
         <main className="flex-1 overflow-auto w-full">
           {active === "dashboard" ? <DashboardView       setActive={setActive} user={user} /> :
-           active === "submit"    ? <SubmitComplaintView  setActive={setActive} user={user} /> :
-           active === "track"     ? <MyComplaintsView     setActive={setActive} user={user} /> :
-           active === "history"   ? <HistoryView          user={user}                        /> :
-           active === "profile"   ? <ProfileView          user={user}                        /> :
-           active === "notifs"    ? <NotificationsView    user={user}                        /> :
+           active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
+           active === "track"     ? <MyComplaintsView    setActive={setActive} user={user} /> :
+           active === "history"   ? <HistoryView         user={user}                        /> :
+           active === "profile"   ? <ProfileView         user={user}                        /> :
+           active === "notifs"    ? <NotificationsView   user={user}                        /> :
                                     <PlaceholderView id={active} />}
         </main>
       </div>
 
-      {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex md:hidden z-40">
         {[
           { id: "dashboard", icon: LayoutDashboard, label: "Home"    },
