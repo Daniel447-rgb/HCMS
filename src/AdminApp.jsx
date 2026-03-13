@@ -90,7 +90,7 @@ function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.open;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
-                      text-xs font-semibold ring-1 ${cfg.badge}`}>
+                      text-xs font-semibold ring-1 flex-shrink-0 ${cfg.badge}`}>
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
       {cfg.label}
     </span>
@@ -240,7 +240,7 @@ function Topbar({ pageTitle, user, onMenuOpen, onLogout }) {
                         rounded-xl px-2 py-1.5 transition-colors">
           <div className="w-px h-6 bg-slate-200 mr-1" />
           <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center
-                          text-xs font-bold text-slate-900">
+                          text-xs font-bold text-slate-900 flex-shrink-0">
             {user.initials}
           </div>
           <div>
@@ -442,8 +442,6 @@ function DashboardView({ setActive, user, complaints, porters }) {
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 w-full">
-
-      {/* Banner */}
       <div className="bg-slate-900 rounded-2xl p-5 md:p-6 shadow-lg overflow-hidden relative">
         <div className="absolute right-0 top-0 w-64 h-full opacity-5 pointer-events-none">
           <div className="w-48 h-48 rounded-full bg-white absolute -top-10 -right-10" />
@@ -474,15 +472,13 @@ function DashboardView({ setActive, user, complaints, porters }) {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-        <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-blue-600"    label="Total Complaints" value={complaints.length} sub="All time"            subColor="text-slate-400"   />
-        <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Open / Urgent"    value={open.length}       sub="Awaiting action"    subColor="text-amber-500"   />
-        <StatCard icon={Wrench}        iconBg="bg-blue-50"    iconColor="text-blue-500"    label="In Progress"      value={progress.length}   sub="Being handled"      subColor="text-blue-500"    />
+        <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-blue-600"    label="Total Complaints" value={complaints.length} sub="All time"             subColor="text-slate-400"   />
+        <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Open / Urgent"    value={open.length}       sub="Awaiting action"     subColor="text-amber-500"   />
+        <StatCard icon={Wrench}        iconBg="bg-blue-50"    iconColor="text-blue-500"    label="In Progress"      value={progress.length}   sub="Being handled"       subColor="text-blue-500"    />
         <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved.length}   sub="Successfully closed" subColor="text-emerald-500" />
       </div>
 
-      {/* Recent Complaints + Porter Overview */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-5">
         <div className="col-span-1 md:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -510,8 +506,6 @@ function DashboardView({ setActive, user, complaints, porters }) {
                     <p className="text-sm font-semibold text-slate-700 truncate">{c.title}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="text-xs text-slate-400 truncate">{c.hostel} · {c.room}</span>
-                      <span className="text-slate-200 hidden sm:inline">·</span>
-                      <span className="text-xs text-slate-400 hidden sm:inline truncate">{c.studentName}</span>
                     </div>
                   </div>
                   <StatusBadge status={c.status} />
@@ -540,14 +534,14 @@ function DashboardView({ setActive, user, complaints, porters }) {
                 const porterResolved = complaints.filter(c => c.claimedById === p.uid && c.status === "resolved").length;
                 const porterActive   = complaints.filter(c => c.claimedById === p.uid && c.status !== "resolved").length;
                 return (
-                  <div key={p.uid} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div key={p.uid} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
                     <div className="w-9 h-9 rounded-full bg-emerald-700 flex items-center
                                     justify-center text-xs font-bold text-white flex-shrink-0">
                       {p.initials}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-700 truncate">{p.name}</p>
-                      <p className="text-xs text-slate-400">{p.block} · {p.staffId}</p>
+                      <p className="text-xs text-slate-400 truncate">{p.block} · {p.staffId}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-xs font-bold text-emerald-600">{porterResolved} resolved</p>
@@ -564,7 +558,7 @@ function DashboardView({ setActive, user, complaints, porters }) {
       {urgent.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-2xl px-4 md:px-5 py-4 flex items-start gap-3">
           <Flame className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-red-700">
               {urgent.length} urgent complaint{urgent.length > 1 ? "s" : ""} need attention
             </p>
@@ -587,11 +581,11 @@ function AllComplaintsView({ complaints }) {
   const [search, setSearch] = useState("");
 
   const filters = [
-    { key: "all",      label: "All",        count: complaints.length                                       },
-    { key: "open",     label: "Open",        count: complaints.filter(c => c.status === "open").length     },
-    { key: "urgent",   label: "Urgent",      count: complaints.filter(c => c.status === "urgent").length   },
-    { key: "progress", label: "In Progress", count: complaints.filter(c => c.status === "progress").length },
-    { key: "resolved", label: "Resolved",    count: complaints.filter(c => c.status === "resolved").length },
+    { key: "all",      label: "All",         count: complaints.length                                       },
+    { key: "open",     label: "Open",        count: complaints.filter(c => c.status === "open").length      },
+    { key: "urgent",   label: "Urgent",      count: complaints.filter(c => c.status === "urgent").length    },
+    { key: "progress", label: "In Progress", count: complaints.filter(c => c.status === "progress").length  },
+    { key: "resolved", label: "Resolved",    count: complaints.filter(c => c.status === "resolved").length  },
   ];
 
   const filtered = complaints.filter(c => {
@@ -604,137 +598,150 @@ function AllComplaintsView({ complaints }) {
   });
 
   return (
-    <div className="p-4 md:p-6 w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800"
-              style={{ fontFamily: "'Playfair Display', serif" }}>All Complaints</h1>
-          <p className="text-sm text-slate-400 mt-1">System-wide view of every complaint</p>
-        </div>
-        <div className="flex items-center gap-2 bg-white border border-slate-200
-                        rounded-xl px-4 py-2.5 w-full sm:w-64 shadow-sm">
-          <Search className="w-4 h-4 text-slate-300 flex-shrink-0" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-                 placeholder="Search complaints..."
-                 className="bg-transparent text-sm text-slate-600 outline-none w-full placeholder:text-slate-300" />
-        </div>
-      </div>
+    <div className="w-full flex flex-col">
 
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
-        {filters.map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key)}
-                  className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-full text-sm font-semibold
-                               border transition-all whitespace-nowrap flex-shrink-0
-                               ${filter === f.key
-                                 ? "bg-amber-400 text-slate-900 border-amber-400"
-                                 : "bg-white text-slate-500 border-slate-200 hover:border-amber-300"}`}>
-            {f.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
-              ${filter === f.key ? "bg-slate-900/20 text-slate-900" : "bg-slate-100 text-slate-500"}`}>
-              {f.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="flex items-center justify-center h-48">
-          <p className="text-slate-400 text-sm">No complaints found.</p>
-        </div>
-      ) : (
-        <>
-          {/* Desktop table */}
-          <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                    {["Title", "Student", "Hostel", "Category", "Priority", "Claimed By", "Status", "Date"].map(h => (
-                      <th key={h} className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 py-3">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(c => (
-                    <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700 max-w-[160px]">
-                        <p className="truncate">{c.title}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-xs font-semibold text-slate-700">{c.studentName}</p>
-                        <p className="text-[10px] text-slate-400">{c.matric}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{c.hostel} · {c.room}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1 text-xs bg-slate-100 rounded-lg px-2 py-1 font-medium text-slate-600 whitespace-nowrap">
-                          {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
-                          {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 font-medium whitespace-nowrap">
-                        {c.claimedBy ?? <span className="text-slate-300 italic">Unclaimed</span>}
-                      </td>
-                      <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                      <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.submittedAt}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* Header */}
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800"
+                style={{ fontFamily: "'Playfair Display', serif" }}>All Complaints</h1>
+            <p className="text-sm text-slate-400 mt-1">System-wide view of every complaint</p>
           </div>
+          <div className="flex items-center gap-2 bg-white border border-slate-200
+                          rounded-xl px-4 py-2.5 w-full sm:w-64 shadow-sm">
+            <Search className="w-4 h-4 text-slate-300 flex-shrink-0" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+                   placeholder="Search complaints..."
+                   className="bg-transparent text-sm text-slate-600 outline-none w-full placeholder:text-slate-300" />
+          </div>
+        </div>
+      </div>
 
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
-            {filtered.map(c => (
-              <div key={c.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
+      {/* Filter pills — scrollable strip */}
+      <div className="w-full overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="flex gap-2 px-4 md:px-6 pb-3" style={{ width: "max-content", minWidth: "100%" }}>
+          {filters.map(f => (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-full text-sm font-semibold
+                                 border transition-all whitespace-nowrap flex-shrink-0
+                                 ${filter === f.key
+                                   ? "bg-amber-400 text-slate-900 border-amber-400"
+                                   : "bg-white text-slate-500 border-slate-200 hover:border-amber-300"}`}>
+              {f.label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
+                ${filter === f.key ? "bg-slate-900/20 text-slate-900" : "bg-slate-100 text-slate-500"}`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-4 md:px-6 pb-4 md:pb-6">
+        {filtered.length === 0 ? (
+          <div className="flex items-center justify-center h-48">
+            <p className="text-slate-400 text-sm">No complaints found.</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      {["Title", "Student", "Hostel", "Category", "Priority", "Claimed By", "Status", "Date"].map(h => (
+                        <th key={h} className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 py-3">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(c => (
+                      <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-700 max-w-[160px]">
+                          <p className="truncate">{c.title}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-semibold text-slate-700">{c.studentName}</p>
+                          <p className="text-[10px] text-slate-400">{c.matric}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{c.hostel} · {c.room}</td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1 text-xs bg-slate-100 rounded-lg px-2 py-1 font-medium text-slate-600 whitespace-nowrap">
+                            {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
+                            {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-600 font-medium whitespace-nowrap">
+                          {c.claimedBy ?? <span className="text-slate-300 italic">Unclaimed</span>}
+                        </td>
+                        <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
+                        <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.submittedAt}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile cards — FIXED */}
+            <div className="md:hidden space-y-3">
+              {filtered.map(c => (
+                <div key={c.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 overflow-hidden">
+                  {/* Card header */}
+                  <div className="flex items-start gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-xl flex-shrink-0">
                       {CATEGORY_ICONS[c.category] ?? "📌"}
                     </div>
-                    <div className="min-w-0">
+                    <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-amber-600">{c.category}</p>
-                      <p className="text-sm font-bold text-slate-700 leading-tight truncate max-w-[180px]">{c.title}</p>
+                      <p className="text-sm font-bold text-slate-700 leading-tight truncate">{c.title}</p>
+                    </div>
+                    <StatusBadge status={c.status} />
+                  </div>
+
+                  {/* Card body — 2 col grid */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mb-3">
+                    <div className="min-w-0">
+                      <p className="text-slate-400 font-medium">Student</p>
+                      <p className="text-slate-700 font-semibold truncate">{c.studentName}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-slate-400 font-medium">Location</p>
+                      <p className="text-slate-700 font-semibold truncate">{c.hostel} · {c.room}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-slate-400 font-medium">Claimed By</p>
+                      <p className={`font-semibold truncate ${c.claimedBy ? "text-slate-700" : "text-slate-300 italic"}`}>
+                        {c.claimedBy ?? "Unclaimed"}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-slate-400 font-medium">Date</p>
+                      <p className="text-slate-700 font-semibold">{c.submittedAt}</p>
                     </div>
                   </div>
-                  <StatusBadge status={c.status} />
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                  <div>
-                    <p className="text-slate-400 font-medium">Student</p>
-                    <p className="text-slate-700 font-semibold truncate">{c.studentName}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-medium">Location</p>
-                    <p className="text-slate-700 font-semibold">{c.hostel} · {c.room}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-medium">Claimed By</p>
-                    <p className={`font-semibold ${c.claimedBy ? "text-slate-700" : "text-slate-300 italic"}`}>
-                      {c.claimedBy ?? "Unclaimed"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-medium">Date</p>
-                    <p className="text-slate-700 font-semibold">{c.submittedAt}</p>
+
+                  {/* Card footer */}
+                  <div className="pt-2 border-t border-slate-50">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
+                      {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)} Priority
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-50">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
-                    {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)} Priority
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -800,20 +807,20 @@ function ManagePortersView({ porters, complaints }) {
             return (
               <div key={p.uid} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-emerald-700 flex items-center
                                     justify-center text-sm font-bold text-white flex-shrink-0">
                       {p.initials}
                     </div>
                     <div className="min-w-0">
                       <p className="text-base font-bold text-slate-800 truncate">{p.name}</p>
-                      <p className="text-xs text-slate-400">{p.block} · {p.staffId}</p>
+                      <p className="text-xs text-slate-400 truncate">{p.block} · {p.staffId}</p>
                       <p className="text-xs text-slate-400 truncate">{p.email}</p>
                     </div>
                   </div>
                   <button onClick={() => setDeleteTarget(p)}
                           className="w-8 h-8 rounded-xl bg-red-50 border border-red-100 flex items-center
-                                     justify-center hover:bg-red-100 transition-colors group flex-shrink-0">
+                                     justify-center hover:bg-red-100 transition-colors group flex-shrink-0 ml-2">
                     <Trash2 className="w-4 h-4 text-red-400 group-hover:text-red-600" />
                   </button>
                 </div>
@@ -821,7 +828,7 @@ function ManagePortersView({ porters, complaints }) {
                   {[
                     { label: "Active",   value: porterActive,   color: "text-amber-600"   },
                     { label: "Resolved", value: porterResolved, color: "text-emerald-600" },
-                    { label: "Total",    value: total,           color: "text-slate-700"   },
+                    { label: "Total",    value: total,          color: "text-slate-700"   },
                   ].map(s => (
                     <div key={s.label} className="bg-slate-50 rounded-xl p-2.5 md:p-3 text-center">
                       <p className={`text-lg md:text-xl font-bold ${s.color}`}
@@ -886,13 +893,13 @@ function HostelBlocksView({ complaints, porters }) {
 
         <div className="max-w-3xl mx-auto space-y-5">
           <div className={`${cfg.bg} border ${cfg.border} rounded-2xl p-5 md:p-6`}>
-            <div className="flex items-start justify-between mb-3">
-              <div>
+            <div className="flex items-start justify-between mb-3 gap-3">
+              <div className="min-w-0">
                 <h1 className="text-2xl font-bold text-slate-800"
                     style={{ fontFamily: "'Playfair Display', serif" }}>{s.block}</h1>
                 <p className="text-sm text-slate-500 mt-1">Crawford University Hostel</p>
               </div>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full flex-shrink-0
                                text-xs font-bold ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
                 <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
                 {cfg.label}
@@ -990,7 +997,7 @@ function HostelBlocksView({ complaints, porters }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-700 truncate">{c.title}</p>
-                      <p className="text-xs text-slate-400">{c.room} · {c.studentName}</p>
+                      <p className="text-xs text-slate-400 truncate">{c.room} · {c.studentName}</p>
                     </div>
                     <StatusBadge status={c.status} />
                   </div>
@@ -1024,10 +1031,10 @@ function HostelBlocksView({ complaints, porters }) {
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.bg}`}>
               <s.icon className={`w-5 h-5 ${s.color}`} />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xl font-bold text-slate-800"
                  style={{ fontFamily: "'Playfair Display', serif" }}>{s.value}</p>
-              <p className="text-xs text-slate-400 font-medium">{s.label}</p>
+              <p className="text-xs text-slate-400 font-medium truncate">{s.label}</p>
             </div>
           </div>
         ))}
@@ -1040,15 +1047,15 @@ function HostelBlocksView({ complaints, porters }) {
             <div key={s.block} onClick={() => setSelected(s.block)}
                  className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5
                             hover:shadow-md hover:border-amber-200 cursor-pointer transition-all group">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-bold text-slate-800 group-hover:text-amber-600 transition-colors"
+              <div className="flex items-start justify-between mb-4 gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-800 group-hover:text-amber-600 transition-colors truncate"
                       style={{ fontFamily: "'Playfair Display', serif" }}>{s.block}</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
                     {s.assignedPorters.length} porter{s.assignedPorters.length !== 1 ? "s" : ""} assigned
                   </p>
                 </div>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full flex-shrink-0
                                  text-[10px] font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                   {cfg.label}
@@ -1081,7 +1088,7 @@ function HostelBlocksView({ complaints, porters }) {
 
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
                 <span className="text-xs text-slate-400">{s.total} total complaint{s.total !== 1 ? "s" : ""}</span>
-                <span className="text-xs font-semibold text-amber-600 group-hover:underline flex items-center gap-1">
+                <span className="text-xs font-semibold text-amber-600 group-hover:underline flex items-center gap-1 flex-shrink-0">
                   View details <ChevronRight className="w-3 h-3" />
                 </span>
               </div>
@@ -1169,7 +1176,6 @@ function AnalyticsView({ complaints, porters }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Complaints over time */}
         <div className="col-span-1 md:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-5">
             <BarChart2 className="w-4 h-4 text-amber-500" />
@@ -1198,7 +1204,6 @@ function AnalyticsView({ complaints, porters }) {
           </div>
         </div>
 
-        {/* Status distribution */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-5">
             <CheckCircle2 className="w-4 h-4 text-amber-500" />
@@ -1231,7 +1236,6 @@ function AnalyticsView({ complaints, porters }) {
         </div>
       </div>
 
-      {/* Category breakdown */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
         <div className="flex items-center gap-2 mb-5">
           <ClipboardList className="w-4 h-4 text-amber-500" />
@@ -1260,7 +1264,6 @@ function AnalyticsView({ complaints, porters }) {
         )}
       </div>
 
-      {/* Porter performance */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <UserCheck className="w-4 h-4 text-amber-500" />
@@ -1272,7 +1275,6 @@ function AnalyticsView({ complaints, porters }) {
           </div>
         ) : (
           <>
-            {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -1321,7 +1323,6 @@ function AnalyticsView({ complaints, porters }) {
               </table>
             </div>
 
-            {/* Mobile cards */}
             <div className="md:hidden divide-y divide-slate-50">
               {porterPerf.map((p, i) => (
                 <div key={p.uid} className="flex items-center gap-3 px-4 py-4">
@@ -1335,7 +1336,7 @@ function AnalyticsView({ complaints, porters }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-700 truncate">{p.name}</p>
-                    <p className="text-xs text-slate-400">{p.block}</p>
+                    <p className="text-xs text-slate-400 truncate">{p.block}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-amber-600 font-bold">{p.active} active</span>
                       <span className="text-xs text-emerald-600 font-bold">{p.resolved} resolved</span>
@@ -1384,14 +1385,15 @@ export default function AdminApp({ user, onLogout }) {
         open={sidebarOpen} onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen">
+      {/* KEY FIX: min-w-0 + overflow-hidden stops children expanding page width */}
+      <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
         <Topbar
           pageTitle={PAGE_TITLES[active] ?? active}
           user={user}
           onMenuOpen={() => setSidebarOpen(true)}
           onLogout={() => setShowLogout(true)}
         />
-        <main className="flex-1 overflow-auto w-full">
+        <main className="flex-1 w-full min-w-0 overflow-x-hidden overflow-y-auto">
           {active === "dashboard"  ? <DashboardView     setActive={setActive} user={user} complaints={complaints} porters={porters} /> :
            active === "complaints" ? <AllComplaintsView  complaints={complaints} /> :
            active === "porters"    ? <ManagePortersView  porters={porters} complaints={complaints} /> :
