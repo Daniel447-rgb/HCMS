@@ -1269,25 +1269,25 @@ function MyComplaintsView({ setActive, user }) {
         </div>
       </div>
 
-      {/* Filter pills — NO left/right padding clipping, scrolls freely */}
-      <div className="w-full overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-        <div className="flex items-center gap-2 px-4 md:px-6 pb-3" style={{ width: "max-content", minWidth: "100%" }}>
-          {filters.map((f) => (
-            <button key={f.key} onClick={() => setFilter(f.key)}
-                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-full text-sm font-semibold
-                                 border transition-all whitespace-nowrap flex-shrink-0
-                                 ${filter === f.key
-                                   ? "bg-[#1447A3] text-white border-[#1447A3]"
-                                   : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}>
-              {f.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
-                ${filter === f.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
-                {f.count}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Filter pills */}
+<div className="overflow-x-auto w-full pb-3" style={{ WebkitOverflowScrolling: "touch" }}>
+  <div className="flex gap-2 px-4 md:px-6" style={{ width: "max-content" }}>
+    {filters.map((f) => (
+      <button key={f.key} onClick={() => setFilter(f.key)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold
+                           border transition-all whitespace-nowrap
+                           ${filter === f.key
+                             ? "bg-[#1447A3] text-white border-[#1447A3]"
+                             : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}>
+        {f.label}
+        <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
+          ${filter === f.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+          {f.count}
+        </span>
+      </button>
+    ))}
+  </div>
+</div>
 
       {/* Cards section — padded */}
       <div className="px-4 md:px-6 pb-4 md:pb-6">
@@ -1460,7 +1460,7 @@ export default function StudentApp({ user, onLogout }) {
 
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
         <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} onNavigate={setActive} unreadCount={unreadCount} />
-        <main className="flex-1 overflow-auto w-full">
+        <main className="flex-1 overflow-auto overflow-x-hidden w-full">
           {active === "dashboard" ? <DashboardView       setActive={setActive} user={user} /> :
            active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
            active === "track"     ? <MyComplaintsView    setActive={setActive} user={user} /> :
