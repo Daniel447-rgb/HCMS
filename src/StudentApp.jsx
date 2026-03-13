@@ -1250,7 +1250,7 @@ function MyComplaintsView({ setActive, user }) {
 
   // ── KEY FIX: outer wrapper has NO padding so filter strip can scroll edge-to-edge ──
   return (
-    <div className="w-full flex flex-col">
+   <div className="w-full flex flex-col overflow-x-hidden">
 
       {/* Header section — padded */}
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
@@ -1270,8 +1270,8 @@ function MyComplaintsView({ setActive, user }) {
       </div>
 
       {/* Filter pills */}
-<div className="overflow-x-auto w-full pb-3" style={{ WebkitOverflowScrolling: "touch" }}>
-  <div className="flex gap-2 px-4 md:px-6" style={{ width: "max-content" }}>
+<div className="w-full overflow-x-auto pb-3" style={{ WebkitOverflowScrolling: "touch" }}>
+  <div className="flex gap-2 px-4 md:px-6" style={{ width: "max-content", minWidth: "100%" }}>
     {filters.map((f) => (
       <button key={f.key} onClick={() => setFilter(f.key)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold
@@ -1458,9 +1458,9 @@ export default function StudentApp({ user, onLogout }) {
 
       <Sidebar active={active} setActive={setActive} user={user} onLogout={() => setShowLogout(true)} unreadCount={unreadCount} />
 
-      <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0">
+     <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0 min-w-0 overflow-hidden">
         <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} onNavigate={setActive} unreadCount={unreadCount} />
-        <main className="flex-1 overflow-auto overflow-x-hidden w-full">
+       <main className="flex-1 w-full min-w-0 overflow-x-hidden">
           {active === "dashboard" ? <DashboardView       setActive={setActive} user={user} /> :
            active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
            active === "track"     ? <MyComplaintsView    setActive={setActive} user={user} /> :
