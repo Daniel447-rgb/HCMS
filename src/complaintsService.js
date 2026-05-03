@@ -10,22 +10,127 @@ import {
   orderBy,
   where,
   serverTimestamp,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { db } from "./firebase.js";
+import emailjs from "@emailjs/browser";
+
+// ─── EmailJS Config ──────
+const SERVICE_ID          = "service_y6ghu6n";
+const PUBLIC_KEY          = "zn0JqYXhvlJmQzURk";
+const STUDENT_TEMPLATE_ID = "template_29mxxrp";
+const PORTER_TEMPLATE_ID  = "template_3924c1c";
+
+emailjs.init(PUBLIC_KEY);
 
 // ── Collection references ──────────────────────────────────────────
-const complaintsRef  = collection(db, "complaints");
-const usersRef       = collection(db, "users");
+const complaintsRef    = collection(db, "complaints");
+const usersRef         = collection(db, "users");
 const notificationsRef = collection(db, "notifications");
+const blocksRef        = collection(db, "blocks"); // ← NEW
+
+// ─────────────────────────────────────────────────────────────────
+//  EMAIL HELPERS
+// ─────────────────────────────────────────────────────────────────
+
+async function emailStudent({ toEmail, toName, complaintTitle, newStatus }) {
+  try {
+    await emailjs.send(SERVICE_ID, STUDENT_TEMPLATE_ID, {
+      to_email:        toEmail,
+      to_name:         toName,
+      complaint_title: complaintTitle,
+      new_status:      newStatus,
+    });
+    console.log("✅ Student email sent to", toEmail);
+  } catch (err) {
+    console.error("❌ Student email failed:", err);
+  }
+}
+
+async function emailPorters({ complaintTitle, hostel, room, category, priority }) {
+  try {
+    const { getDocs } = await import("firebase/firestore");
+    const snap        = await getDocs(usersRef);
+    const porters     = snap.docs
+      .map(d => ({ uid: d.id, ...d.data() }))
+      .filter(u => u.role === "porter" && u.email);
+
+    await Promise.all(
+      porters.map(porter =>
+        emailjs.send(SERVICE_ID, PORTER_TEMPLATE_ID, {
+          to_email:        porter.email,
+          to_name:         porter.name,
+          complaint_title: complaintTitle,
+          hostel,
+          room,
+          category,
+          priority,
+        })
+      )
+    );
+    console.log(`✅ Porter emails sent to ${porters.length} porter(s)`);
+  } catch (err) {
+    console.error("❌ Porter email failed:", err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  PHOTO UPLOAD
+// ─────────────────────────────────────────────────────────────────
+
+export async function uploadEvidencePhoto(file) {
+  const base64 = await new Promise((resolve, reject) => {
+    const reader   = new FileReader();
+    reader.onload  = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const formData = new FormData();
+  formData.append("key",        "YOUR_IMGBB_API_KEY");
+  formData.append("image",      base64);
+  formData.append("expiration", "15552000");
+
+  const response = await fetch("https://api.imgbb.com/1/upload", {
+    method: "POST",
+    body:   formData,
+  });
+
+  const data = await response.json();
+  if (!data.success) throw new Error("Photo upload failed");
+
+  return {
+    url:       data.data.url,
+    viewUrl:   data.data.display_url,
+    deleteUrl: data.data.delete_url,
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────
 //  COMPLAINTS
 // ─────────────────────────────────────────────────────────────────
 
-// SUBMIT a new complaint (Student)
 export async function submitComplaint(data) {
+  let evidenceUrl     = null;
+  let evidenceViewUrl = null;
+
+  if (data.photoFile) {
+    try {
+      const uploaded  = await uploadEvidencePhoto(data.photoFile);
+      evidenceUrl     = uploaded.url;
+      evidenceViewUrl = uploaded.viewUrl;
+    } catch (err) {
+      console.error("Photo upload failed, submitting without photo:", err);
+    }
+  }
+
+  const { photoFile, ...complaintData } = data;
+
   const ref = await addDoc(complaintsRef, {
-    ...data,
+    ...complaintData,
+    evidenceUrl,
+    evidenceViewUrl,
     status:          "open",
     claimedBy:       null,
     claimedById:     null,
@@ -34,19 +139,25 @@ export async function submitComplaint(data) {
     updatedAt:       serverTimestamp(),
   });
 
-  // Notify student that complaint was submitted
   await createNotification({
-    userId:  data.studentId,
-    type:    "submitted",
-    title:   "Complaint Submitted",
-    message: `Your complaint "${data.title}" has been received and is under review.`,
+    userId:      data.studentId,
+    type:        "submitted",
+    title:       "Complaint Submitted",
+    message:     `Your complaint "${data.title}" has been received and is under review.`,
     complaintId: ref.id,
+  });
+
+  await emailPorters({
+    complaintTitle: data.title,
+    hostel:         data.hostel,
+    room:           data.room,
+    category:       data.category,
+    priority:       data.priority,
   });
 
   return ref.id;
 }
 
-// LISTEN to ALL complaints — real time (Porter + Head Porter)
 export function listenAllComplaints(callback) {
   const q = query(complaintsRef, orderBy("submittedAt", "desc"));
   return onSnapshot(q, (snap) => {
@@ -54,7 +165,6 @@ export function listenAllComplaints(callback) {
   });
 }
 
-// LISTEN to complaints for a specific student — real time
 export function listenStudentComplaints(studentId, callback) {
   const q = query(complaintsRef, orderBy("submittedAt", "desc"));
   return onSnapshot(q, (snap) => {
@@ -63,13 +173,10 @@ export function listenStudentComplaints(studentId, callback) {
   });
 }
 
-// CLAIM a complaint (Porter self-assigns)
 export async function claimComplaint(complaintId, porterName, porterUid) {
-  // Get complaint data first so we can notify the student
-  const snap = await import("firebase/firestore").then(({ getDoc }) =>
-    getDoc(doc(db, "complaints", complaintId))
-  );
-  const data = snap.data();
+  const { getDoc } = await import("firebase/firestore");
+  const snap       = await getDoc(doc(db, "complaints", complaintId));
+  const data       = snap.data();
 
   await updateDoc(doc(db, "complaints", complaintId), {
     claimedBy:   porterName,
@@ -78,7 +185,6 @@ export async function claimComplaint(complaintId, porterName, porterUid) {
     updatedAt:   serverTimestamp(),
   });
 
-  // Notify the student
   await createNotification({
     userId:      data.studentId,
     type:        "claimed",
@@ -86,15 +192,21 @@ export async function claimComplaint(complaintId, porterName, porterUid) {
     message:     `${porterName} has claimed your complaint "${data.title}" and is now working on it.`,
     complaintId,
   });
+
+  if (data.studentEmail) {
+    await emailStudent({
+      toEmail:        data.studentEmail,
+      toName:         data.studentName,
+      complaintTitle: data.title,
+      newStatus:      "In Progress — A porter has been assigned to your complaint",
+    });
+  }
 }
 
-// UPDATE complaint status (Porter who claimed it)
 export async function updateComplaintStatus(complaintId, status, notes = "") {
-  // Get complaint data first so we can notify the student
-  const snap = await import("firebase/firestore").then(({ getDoc }) =>
-    getDoc(doc(db, "complaints", complaintId))
-  );
-  const data = snap.data();
+  const { getDoc } = await import("firebase/firestore");
+  const snap       = await getDoc(doc(db, "complaints", complaintId));
+  const data       = snap.data();
 
   await updateDoc(doc(db, "complaints", complaintId), {
     status,
@@ -102,23 +214,40 @@ export async function updateComplaintStatus(complaintId, status, notes = "") {
     updatedAt:       serverTimestamp(),
   });
 
-  // Notify the student based on new status
+  let notifType    = "";
+  let notifTitle   = "";
+  let notifMessage = "";
+  let emailStatus  = "";
+
   if (status === "progress") {
-    await createNotification({
-      userId:      data.studentId,
-      type:        "progress",
-      title:       "Work In Progress",
-      message:     `Your complaint "${data.title}" is now being actively worked on.`,
-      complaintId,
-    });
+    notifType    = "progress";
+    notifTitle   = "Work In Progress";
+    notifMessage = `Your complaint "${data.title}" is now being actively worked on.`;
+    emailStatus  = "In Progress — Work on your complaint has begun";
   } else if (status === "resolved") {
+    notifType    = "resolved";
+    notifTitle   = "Complaint Resolved ✅";
+    notifMessage = `Your complaint "${data.title}" has been resolved. ${notes ? `Note: ${notes}` : ""}`;
+    emailStatus  = `Resolved — Your complaint has been fixed. ${notes ? `Porter note: ${notes}` : ""}`;
+  }
+
+  if (notifType) {
     await createNotification({
       userId:      data.studentId,
-      type:        "resolved",
-      title:       "Complaint Resolved ✅",
-      message:     `Your complaint "${data.title}" has been resolved. ${notes ? `Note: ${notes}` : ""}`,
+      type:        notifType,
+      title:       notifTitle,
+      message:     notifMessage,
       complaintId,
     });
+
+    if (data.studentEmail) {
+      await emailStudent({
+        toEmail:        data.studentEmail,
+        toName:         data.studentName,
+        complaintTitle: data.title,
+        newStatus:      emailStatus,
+      });
+    }
   }
 }
 
@@ -126,7 +255,6 @@ export async function updateComplaintStatus(complaintId, status, notes = "") {
 //  NOTIFICATIONS
 // ─────────────────────────────────────────────────────────────────
 
-// CREATE a notification
 export async function createNotification({ userId, type, title, message, complaintId }) {
   await addDoc(notificationsRef, {
     userId,
@@ -139,7 +267,6 @@ export async function createNotification({ userId, type, title, message, complai
   });
 }
 
-// LISTEN to notifications for a student — real time
 export function listenStudentNotifications(studentId, callback) {
   const q = query(
     notificationsRef,
@@ -151,18 +278,17 @@ export function listenStudentNotifications(studentId, callback) {
       id: d.id,
       ...d.data(),
       createdAt: d.data().createdAt?.toDate?.()?.toLocaleDateString("en-GB", {
-        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+        day: "numeric", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit",
       }) ?? "Just now",
     })));
   });
 }
 
-// MARK a single notification as read
 export async function markNotificationRead(notificationId) {
   await updateDoc(doc(db, "notifications", notificationId), { read: true });
 }
 
-// MARK ALL notifications as read for a user
 export async function markAllNotificationsRead(studentId) {
   const { getDocs } = await import("firebase/firestore");
   const q    = query(notificationsRef, where("userId", "==", studentId), where("read", "==", false));
@@ -171,10 +297,9 @@ export async function markAllNotificationsRead(studentId) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  PORTER MANAGEMENT (Head Porter only)
+//  PORTER MANAGEMENT
 // ─────────────────────────────────────────────────────────────────
 
-// LISTEN to all porter profiles — real time
 export function listenPorters(callback) {
   return onSnapshot(usersRef, (snap) => {
     const porters = snap.docs
@@ -184,9 +309,48 @@ export function listenPorters(callback) {
   });
 }
 
-// DELETE a porter's Firestore profile (Head Porter)
 export async function deletePorter(porterUid) {
   await deleteDoc(doc(db, "users", porterUid));
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  BLOCKS & ROOMS MANAGEMENT ← ALL NEW
+// ─────────────────────────────────────────────────────────────────
+
+// Listen to all blocks in real time
+export function listenBlocks(callback) {
+  const q = query(blocksRef, orderBy("createdAt", "asc"));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+}
+
+// Add a new block
+export async function addBlock(blockName) {
+  await addDoc(blocksRef, {
+    name:      blockName.trim(),
+    rooms:     [],
+    createdAt: serverTimestamp(),
+  });
+}
+
+// Delete a block and all its rooms
+export async function deleteBlock(blockId) {
+  await deleteDoc(doc(db, "blocks", blockId));
+}
+
+// Add a room to a block
+export async function addRoom(blockId, roomName) {
+  await updateDoc(doc(db, "blocks", blockId), {
+    rooms: arrayUnion(roomName.trim()),
+  });
+}
+
+// Remove a room from a block
+export async function removeRoom(blockId, roomName) {
+  await updateDoc(doc(db, "blocks", blockId), {
+    rooms: arrayRemove(roomName),
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────

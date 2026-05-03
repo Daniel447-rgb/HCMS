@@ -22,6 +22,8 @@ import {
   BellRing,
   Clock,
   Wrench,
+  Camera,
+  X,
 } from "lucide-react";
 
 const PAGE_TITLES = {
@@ -54,10 +56,10 @@ const CATEGORY_ICONS = {
 };
 
 const NOTIF_CONFIG = {
-  submitted: { icon: ClipboardList, bg: "bg-blue-50",    iconColor: "text-[#1447A3]",   border: "border-blue-100" },
-  claimed:   { icon: Wrench,        bg: "bg-amber-50",   iconColor: "text-amber-500",   border: "border-amber-100" },
+  submitted: { icon: ClipboardList, bg: "bg-blue-50",    iconColor: "text-[#1447A3]",   border: "border-blue-100"   },
+  claimed:   { icon: Wrench,        bg: "bg-amber-50",   iconColor: "text-amber-500",   border: "border-amber-100"  },
   progress:  { icon: Clock,         bg: "bg-purple-50",  iconColor: "text-purple-500",  border: "border-purple-100" },
-  resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100" },
+  resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100"},
 };
 
 function StatusBadge({ status }) {
@@ -415,7 +417,6 @@ function ProfileView({ user }) {
       setPwForm({ current: "", newPw: "", confirm: "" });
       setShowPwForm(false);
     } catch (err) {
-      console.error("Password update error:", err.code, err.message);
       const msg =
         err.code === "auth/wrong-password"        ? "Current password is incorrect."         :
         err.code === "auth/weak-password"         ? "New password is too weak."              :
@@ -619,9 +620,9 @@ function DashboardView({ setActive, user }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
         <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value={total}    sub="Since session start" subColor="text-slate-400"   />
-        <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"      subColor="text-amber-500"   />
-        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved} sub="↑ Great progress!"    subColor="text-emerald-500" />
-        <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"      subColor="text-red-500"     />
+        <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"     subColor="text-amber-500"   />
+        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved} sub="↑ Great progress!"   subColor="text-emerald-500" />
+        <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"     subColor="text-red-500"     />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
@@ -692,12 +693,16 @@ function DashboardView({ setActive, user }) {
 
 // ─── SUBMIT COMPLAINT VIEW ─────────────────────────────────────────
 function SubmitComplaintView({ setActive, user }) {
-  const [step, setStep]           = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [form, setForm]           = useState({
+  const [step, setStep]             = useState(1);
+  const [submitted, setSubmitted]   = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [photoFile, setPhotoFile]   = useState(null);     // ← NEW
+  const [photoPreview, setPhotoPreview] = useState(null); // ← NEW
+  const [form, setForm]             = useState({
     hostel: "", room: "", category: "", title: "", description: "", priority: "",
   });
+
+  const photoInputRef = React.useRef(); // ← NEW
 
   const HOSTELS = [
     "Block A (Male Hostel)", "Block B (Female Hostel)",
@@ -729,6 +734,28 @@ function SubmitComplaintView({ setActive, user }) {
 
   const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
+  // ── NEW: handle photo selection ──────────────────────────────────
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate — max 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Photo must be smaller than 2MB. Please choose a smaller image.");
+      return;
+    }
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    // Reset the file input so the same file can be re-selected
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
   const canProceed = () => {
     if (step === 1) return form.hostel && form.room;
     if (step === 2) return form.category && form.title && form.description.length >= 20;
@@ -736,19 +763,22 @@ function SubmitComplaintView({ setActive, user }) {
     return true;
   };
 
+  // ── UPDATED: pass studentEmail and photoFile ─────────────────────
   const handleSubmit = async () => {
     setLoading(true);
     try {
       await submitComplaint({
-        title:       form.title,
-        desc:        form.description,
-        category:    form.category,
-        priority:    form.priority,
-        hostel:      form.hostel.split(" (")[0],
-        room:        form.room,
-        studentId:   user.uid,
-        studentName: user.name,
-        matric:      user.matric,
+        title:        form.title,
+        desc:         form.description,
+        category:     form.category,
+        priority:     form.priority,
+        hostel:       form.hostel.split(" (")[0],
+        room:         form.room,
+        studentId:    user.uid,
+        studentName:  user.name,
+        studentEmail: user.email,  // ← NEW — needed for email notifications
+        matric:       user.matric,
+        photoFile:    photoFile,   // ← NEW — null if no photo attached
       });
       setSubmitted(true);
     } catch (err) {
@@ -777,22 +807,24 @@ function SubmitComplaintView({ setActive, user }) {
             <p className="text-blue-200 text-xs mt-2">Track it under "My Complaints"</p>
           </div>
           <div className="bg-slate-50 rounded-xl p-4 text-left space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400 font-medium">Category</span>
-              <span className="text-slate-700 font-semibold">{form.category}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400 font-medium">Location</span>
-              <span className="text-slate-700 font-semibold">{form.hostel.split(" (")[0]} · {form.room}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400 font-medium">Priority</span>
-              <span className="text-slate-700 font-semibold capitalize">{form.priority}</span>
-            </div>
+            {[
+              { label: "Category", value: form.category },
+              { label: "Location", value: `${form.hostel.split(" (")[0]} · ${form.room}` },
+              { label: "Priority", value: form.priority.charAt(0).toUpperCase() + form.priority.slice(1) },
+              { label: "Photo",    value: photoFile ? "✅ Attached" : "None" },
+            ].map(r => (
+              <div key={r.label} className="flex justify-between text-sm">
+                <span className="text-slate-400 font-medium">{r.label}</span>
+                <span className="text-slate-700 font-semibold">{r.value}</span>
+              </div>
+            ))}
           </div>
           <div className="flex gap-3 pt-2">
-            <button
-              onClick={() => { setSubmitted(false); setStep(1); setForm({ hostel: "", room: "", category: "", title: "", description: "", priority: "" }); }}
+            <button onClick={() => {
+              setSubmitted(false); setStep(1);
+              setForm({ hostel: "", room: "", category: "", title: "", description: "", priority: "" });
+              setPhotoFile(null); setPhotoPreview(null);
+            }}
               className="flex-1 px-4 py-3 rounded-xl border border-slate-200
                          text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
               Submit Another
@@ -926,7 +958,7 @@ function SubmitComplaintView({ setActive, user }) {
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea value={form.description} onChange={(e) => update("description", e.target.value)}
-                        rows={6} placeholder="Describe the issue in detail..."
+                        rows={5} placeholder="Describe the issue in detail..."
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
                                    text-slate-700 outline-none resize-none leading-relaxed
                                    focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100
@@ -938,7 +970,53 @@ function SubmitComplaintView({ setActive, user }) {
                 </p>
               </div>
             </div>
+
+            {/* ── PHOTO UPLOAD ── NEW ─────────────────────────────── */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Photo Evidence <span className="text-slate-300 font-normal normal-case">(Optional)</span>
+              </label>
+              <p className="text-xs text-slate-400">
+                Attach a photo of the issue to help the porter understand the problem. Max 2MB.
+              </p>
+
+              {photoPreview ? (
+                // Preview of selected photo
+                <div className="relative rounded-xl overflow-hidden border border-slate-200">
+                  <img src={photoPreview} alt="Evidence preview"
+                       className="w-full h-44 object-cover" />
+                  <button onClick={handleRemovePhoto}
+                          className="absolute top-2 right-2 w-7 h-7 bg-red-500 rounded-full
+                                     flex items-center justify-center hover:bg-red-600 transition-colors shadow">
+                    <X className="w-3.5 h-3.5 text-white" />
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-3 py-2">
+                    <p className="text-white text-xs font-medium truncate">{photoFile?.name}</p>
+                  </div>
+                </div>
+              ) : (
+                // Upload prompt
+                <label className="flex flex-col items-center justify-center h-32 border-2
+                                   border-dashed border-slate-200 rounded-xl cursor-pointer
+                                   hover:border-[#1447A3] hover:bg-blue-50 transition-all group">
+                  <Camera className="w-7 h-7 text-slate-300 group-hover:text-[#1447A3] mb-2 transition-colors" />
+                  <span className="text-sm font-semibold text-slate-400 group-hover:text-[#1447A3] transition-colors">
+                    Tap to attach photo
+                  </span>
+                  <span className="text-xs text-slate-300 mt-0.5">JPG, PNG — max 2MB</span>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoSelect}
+                  />
+                </label>
+              )}
+            </div>
+            {/* ── END PHOTO UPLOAD ───────────────────────────────── */}
           </div>
+
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -1039,6 +1117,7 @@ function SubmitComplaintView({ setActive, user }) {
                 { label: "Room Number",  value: form.room },
                 { label: "Category",     value: `${CATEGORY_ICONS[form.category] ?? "📌"} ${form.category}` },
                 { label: "Priority",     value: form.priority.charAt(0).toUpperCase() + form.priority.slice(1) },
+                { label: "Photo",        value: photoFile ? "✅ Photo attached" : "No photo" },
               ].map((row) => (
                 <div key={row.label} className="flex justify-between items-center px-4 py-3">
                   <span className="text-sm text-slate-400 font-medium">{row.label}</span>
@@ -1046,6 +1125,15 @@ function SubmitComplaintView({ setActive, user }) {
                 </div>
               ))}
             </div>
+
+            {/* Show photo preview on review step */}
+            {photoPreview && (
+              <div className="rounded-xl overflow-hidden border border-slate-100">
+                <img src={photoPreview} alt="Evidence"
+                     className="w-full h-36 object-cover" />
+              </div>
+            )}
+
             <div className="space-y-1">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Title</p>
               <p className="text-sm font-semibold text-slate-700">{form.title}</p>
@@ -1070,7 +1158,12 @@ function SubmitComplaintView({ setActive, user }) {
               <p className="text-emerald-100 text-sm leading-relaxed">Review your complaint carefully before submitting.</p>
             </div>
             <div className="mt-6 space-y-3">
-              {["Saved to Firestore instantly", "You can track it in real time", "Porter will be notified"].map((tip) => (
+              {[
+                "Saved to Firestore instantly",
+                "You can track it in real time",
+                "Porter will be notified by email",
+                photoFile ? "📷 Photo evidence attached" : "No photo attached",
+              ].map((tip) => (
                 <div key={tip} className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-200 flex-shrink-0" />
                   <span className="text-emerald-100 text-sm">{tip}</span>
@@ -1101,7 +1194,8 @@ function SubmitComplaintView({ setActive, user }) {
                              text-white text-sm font-semibold hover:bg-blue-800 transition-colors
                              disabled:opacity-60 disabled:cursor-not-allowed">
             {loading
-              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting…</>
+              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  {photoFile ? "Uploading & Submitting…" : "Submitting…"}</>
               : <><CheckCircle2 className="w-4 h-4" /> Submit Complaint</>}
           </button>
         )}
@@ -1165,6 +1259,21 @@ function MyComplaintsView({ setActive, user }) {
               </div>
             </div>
 
+            {/* ── PHOTO EVIDENCE — shown in detail view ── NEW ──── */}
+            {c.evidenceUrl && (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">
+                  📷 Photo Evidence
+                </p>
+                <img src={c.evidenceUrl} alt="Complaint evidence"
+                     className="w-full rounded-xl object-cover max-h-64 border border-slate-100" />
+                <a href={c.evidenceUrl} target="_blank" rel="noopener noreferrer"
+                   className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#1447A3] hover:underline">
+                  View Full Photo ↗
+                </a>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Priority</p>
@@ -1175,12 +1284,12 @@ function MyComplaintsView({ setActive, user }) {
               </div>
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Assigned To</p>
-                {c.assignedTo ? (
+                {c.claimedBy ? (
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-[#1447A3] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {c.assignedTo.split(" ").map(w => w[0]).join("").slice(0, 2)}
+                      {c.claimedBy.split(" ").map(w => w[0]).join("").slice(0, 2)}
                     </div>
-                    <span className="text-sm font-semibold text-slate-700 truncate">{c.assignedTo}</span>
+                    <span className="text-sm font-semibold text-slate-700 truncate">{c.claimedBy}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -1223,7 +1332,7 @@ function MyComplaintsView({ setActive, user }) {
                 {[
                   { event: "Complaint submitted",   done: true                                               },
                   { event: "Under review by admin", done: true                                               },
-                  { event: "Assigned to porter",    done: !!c.assignedTo                                     },
+                  { event: "Assigned to porter",    done: !!c.claimedBy                                      },
                   { event: "Work in progress",      done: c.status === "progress" || c.status === "resolved" },
                   { event: "Resolved & closed",     done: c.status === "resolved"                            },
                 ].map((t, i) => (
@@ -1248,11 +1357,8 @@ function MyComplaintsView({ setActive, user }) {
     );
   }
 
-  // ── KEY FIX: outer wrapper has NO padding so filter strip can scroll edge-to-edge ──
   return (
-   <div className="w-full flex flex-col overflow-x-hidden">
-
-      {/* Header section — padded */}
+    <div className="w-full flex flex-col overflow-x-hidden">
       <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -1269,27 +1375,25 @@ function MyComplaintsView({ setActive, user }) {
         </div>
       </div>
 
-      {/* Filter pills */}
-<div className="w-full overflow-x-auto pb-3" style={{ WebkitOverflowScrolling: "touch" }}>
-  <div className="flex gap-2 px-4 md:px-6" style={{ width: "max-content", minWidth: "100%" }}>
-    {filters.map((f) => (
-      <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold
-                           border transition-all whitespace-nowrap
-                           ${filter === f.key
-                             ? "bg-[#1447A3] text-white border-[#1447A3]"
-                             : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}>
-        {f.label}
-        <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
-          ${filter === f.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
-          {f.count}
-        </span>
-      </button>
-    ))}
-  </div>
-</div>
+      <div className="w-full overflow-x-auto pb-3" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="flex gap-2 px-4 md:px-6" style={{ width: "max-content", minWidth: "100%" }}>
+          {filters.map((f) => (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold
+                                 border transition-all whitespace-nowrap
+                                 ${filter === f.key
+                                   ? "bg-[#1447A3] text-white border-[#1447A3]"
+                                   : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"}`}>
+              {f.label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
+                ${filter === f.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {/* Cards section — padded */}
       <div className="px-4 md:px-6 pb-4 md:pb-6">
         {filtered.length === 0 && (
           <div className="flex items-center justify-center h-64">
@@ -1319,7 +1423,16 @@ function MyComplaintsView({ setActive, user }) {
                     <p className="text-sm font-bold text-slate-700 leading-tight truncate">{c.title}</p>
                   </div>
                 </div>
-                <div className="flex-shrink-0"><StatusBadge status={c.status} /></div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Show camera icon if photo is attached */}
+                  {c.evidenceUrl && (
+                    <span title="Has photo evidence"
+                          className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center">
+                      <Camera className="w-3 h-3 text-[#1447A3]" />
+                    </span>
+                  )}
+                  <StatusBadge status={c.status} />
+                </div>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-3">{c.desc}</p>
               <div className="flex items-center justify-between pt-3 border-t border-slate-50">
@@ -1408,16 +1521,18 @@ function HistoryView({ user }) {
               <tbody>
                 {complaints.map((c) => (
                   <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-700">{c.title}</td>
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-700 max-w-[160px]">
+                      <p className="truncate">{c.title}</p>
+                    </td>
                     <td className="px-5 py-4">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100
-                                       rounded-lg text-xs font-medium text-slate-600">
+                                       rounded-lg text-xs font-medium text-slate-600 whitespace-nowrap">
                         {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-xs text-slate-500">{c.hostel} · {c.room}</td>
-                    <td className="px-5 py-4 text-xs text-slate-500">{c.submittedAt}</td>
-                    <td className="px-5 py-4 text-xs text-slate-600 font-medium">{c.assignedTo ?? "—"}</td>
+                    <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">{c.hostel} · {c.room}</td>
+                    <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">{c.submittedAt}</td>
+                    <td className="px-5 py-4 text-xs text-slate-600 font-medium">{c.claimedBy ?? "—"}</td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full
                                         text-xs font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge ?? ""}`}>
@@ -1437,8 +1552,8 @@ function HistoryView({ user }) {
 
 // ─── APP ROOT ──────────────────────────────────────────────────────
 export default function StudentApp({ user, onLogout }) {
-  const [active, setActive]           = useState("dashboard");
-  const [showLogout, setShowLogout]   = useState(false);
+  const [active, setActive]               = useState("dashboard");
+  const [showLogout, setShowLogout]       = useState(false);
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
@@ -1456,17 +1571,19 @@ export default function StudentApp({ user, onLogout }) {
         <LogoutModal userName={user.name} onConfirm={onLogout} onCancel={() => setShowLogout(false)} />
       )}
 
-      <Sidebar active={active} setActive={setActive} user={user} onLogout={() => setShowLogout(true)} unreadCount={unreadCount} />
+      <Sidebar active={active} setActive={setActive} user={user}
+               onLogout={() => setShowLogout(true)} unreadCount={unreadCount} />
 
-     <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0 min-w-0 overflow-hidden">
-        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user} onLogout={() => setShowLogout(true)} onNavigate={setActive} unreadCount={unreadCount} />
-       <main className="flex-1 w-full min-w-0 overflow-x-hidden">
+      <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen pb-16 md:pb-0 min-w-0 overflow-hidden">
+        <Topbar pageTitle={PAGE_TITLES[active] ?? active} user={user}
+                onLogout={() => setShowLogout(true)} onNavigate={setActive} unreadCount={unreadCount} />
+        <main className="flex-1 w-full min-w-0 overflow-x-hidden">
           {active === "dashboard" ? <DashboardView       setActive={setActive} user={user} /> :
-           active === "submit"    ? <SubmitComplaintView setActive={setActive} user={user} /> :
-           active === "track"     ? <MyComplaintsView    setActive={setActive} user={user} /> :
-           active === "history"   ? <HistoryView         user={user}                        /> :
-           active === "profile"   ? <ProfileView         user={user}                        /> :
-           active === "notifs"    ? <NotificationsView   user={user}                        /> :
+           active === "submit"    ? <SubmitComplaintView  setActive={setActive} user={user} /> :
+           active === "track"     ? <MyComplaintsView     setActive={setActive} user={user} /> :
+           active === "history"   ? <HistoryView          user={user}                        /> :
+           active === "profile"   ? <ProfileView          user={user}                        /> :
+           active === "notifs"    ? <NotificationsView    user={user}                        /> :
                                     <PlaceholderView id={active} />}
         </main>
       </div>
