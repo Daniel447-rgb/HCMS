@@ -16,7 +16,7 @@ import {
 import { db } from "./firebase.js";
 import emailjs from "@emailjs/browser";
 
-// ─── EmailJS Config ──────
+// ─── EmailJS Config ──────────────────────────────────────────────
 const SERVICE_ID          = "service_y6ghu6n";
 const PUBLIC_KEY          = "zn0JqYXhvlJmQzURk";
 const STUDENT_TEMPLATE_ID = "template_29mxxrp";
@@ -24,12 +24,144 @@ const PORTER_TEMPLATE_ID  = "template_3924c1c";
 
 emailjs.init(PUBLIC_KEY);
 
-// ── Collection references ──────────────────────────────────────────
+// ── Collection references ─────────────────────────────────────────
 const complaintsRef    = collection(db, "complaints");
 const usersRef         = collection(db, "users");
 const notificationsRef = collection(db, "notifications");
-const blocksRef        = collection(db, "blocks"); // ← NEW
+const blocksRef        = collection(db, "blocks");
 
+// ─────────────────────────────────────────────────────────────────
+//  AI COMPLAINT ANALYSIS — uses Groq API
+// ─────────────────────────────────────────────────────────────────
+
+const GROQ_API_KEY = "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"; 
+
+export async function analyzeComplaint(title, description) {
+  const prompt = `
+You are an AI assistant for a university hostel complaint management system in Nigeria.
+Analyze the complaint below and return ONLY a valid JSON object. No explanation. No markdown. No extra text whatsoever.
+
+Complaint Title: "${title}"
+Complaint Description: "${description}"
+
+Return exactly this JSON:
+{
+  "priority": "HIGH" | "MEDIUM" | "LOW",
+  "category": "Plumbing" | "Electricity" | "Security" | "Maintenance" | "Internet" | "Sanitation" | "Staff" | "Noise" | "Other",
+  "anonymous": "YES" | "NO",
+  "aiReason": "One short sentence explaining the priority and anonymous decision"
+}
+
+=== PRIORITY RULES (apply strictly) ===
+HIGH — assign if ANY of these apply:
+- No water, water supply cut off, flooding, major water leak
+- No electricity, power outage, electrical fault or fire risk
+- Theft, burglary, break-in, missing items, robbery
+- Violence, fight, assault, physical threat
+- Fire, smoke, gas leak, explosion risk
+- Health emergency, injury, illness affecting students
+- Security breach, broken locks on main doors or gates
+- Issue affecting many students or the entire block
+
+MEDIUM — assign if complaint is about:
+- Broken fan, broken AC, broken bed, broken furniture
+- Blocked toilet, leaking tap, minor plumbing issue
+- WiFi not working, internet slow or down
+- Dirty environment, uncollected waste, poor sanitation
+- Minor electrical issues like a broken socket or bulb
+- General maintenance issues affecting daily comfort
+
+LOW — assign for:
+- Cosmetic issues like peeling paint, worn surfaces
+- Suggestions or improvement requests
+- Very minor inconveniences with no health or safety risk
+
+=== ANONYMOUS DETECTION RULES (apply strictly) ===
+Set anonymous to YES if the complaint contains ANY of the following:
+- Words expressing fear: "scared", "afraid", "fear", "frightened", "worried about my safety"
+- Harassment or bullying: "harassing", "bullying", "intimidating", "picking on me", "victimizing"
+- Threats: "threatened", "blackmailed", "warned me not to report", "they will deal with me"
+- Staff misconduct: "porter misbehaving", "warden is corrupt", "staff is demanding", "officer collecting money"
+- Corruption or bribery: "bribery", "paying before fixing", "demanding money", "collecting bribe"
+- Sexual misconduct: "sexual", "harassed me sexually", "touched me inappropriately", "unwanted advances"
+- Request to hide identity: "don't reveal", "please don't mention my name", "anonymous", "keep my identity", "confidential", "I don't want anyone to know it's me"
+- Retaliation fear: "they will retaliate", "I will be punished", "I'm scared to be identified"
+
+Set anonymous to NO for all other complaints.
+
+=== CATEGORY RULES ===
+Plumbing — pipes, taps, toilet, drainage, water supply, flooding
+Electricity — power, lights, sockets, generator, electrical, no light
+Security — theft, lock, gate, violence, danger, unsafe, robbery, burglary
+Maintenance — furniture, fan, AC, bed, window, door, ceiling, broken items, repairs
+Internet — WiFi, network, connection, slow internet, no data
+Sanitation — cleaning, waste, trash, hygiene, smell, dirty
+Staff — porter behavior, warden, security officer conduct, staff attitude
+Noise — loud music, noise disturbance, neighbors making noise
+Other — anything that does not fit above
+
+Return ONLY the raw JSON object. Nothing else.
+`;
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model:       "llama-3.3-70b-versatile",
+        temperature: 0.1,
+        max_tokens:  300,
+        messages: [
+          {
+            role:    "system",
+            content: "You are a strict complaint analysis assistant for a Nigerian university hostel system. You ONLY respond with a valid JSON object. You never include markdown, code fences, or any explanation outside the JSON. You follow the priority and anonymous detection rules exactly as given.",
+          },
+          {
+            role:    "user",
+            content: prompt,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Groq API error:", errorData);
+      throw new Error(`Groq API returned ${response.status}`);
+    }
+
+    const data    = await response.json();
+    const rawText = data.choices?.[0]?.message?.content ?? "";
+    const clean   = rawText.replace(/```json|```/g, "").trim();
+    const parsed  = JSON.parse(clean);
+
+    const validPriorities = ["HIGH", "MEDIUM", "LOW"];
+    const validCategories = [
+      "Plumbing", "Electricity", "Security", "Maintenance",
+      "Internet", "Sanitation", "Staff", "Noise", "Other",
+    ];
+    const validAnonymous = ["YES", "NO"];
+
+    return {
+      priority:  validPriorities.includes(parsed.priority)  ? parsed.priority  : "MEDIUM",
+      category:  validCategories.includes(parsed.category)  ? parsed.category  : "Other",
+      anonymous: validAnonymous.includes(parsed.anonymous)  ? parsed.anonymous : "NO",
+      aiReason:  typeof parsed.aiReason === "string"        ? parsed.aiReason  : "Automatically analyzed.",
+    };
+
+  } catch (err) {
+    console.error("Groq AI analysis failed, using fallback:", err);
+    return {
+      priority:  "MEDIUM",
+      category:  "Other",
+      anonymous: "NO",
+      aiReason:  "AI analysis unavailable. Please review this complaint manually.",
+    };
+  }
+}
 // ─────────────────────────────────────────────────────────────────
 //  EMAIL HELPERS
 // ─────────────────────────────────────────────────────────────────
@@ -108,13 +240,14 @@ export async function uploadEvidencePhoto(file) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  COMPLAINTS
+//  COMPLAINTS — SUBMIT (now includes AI analysis)
 // ─────────────────────────────────────────────────────────────────
 
 export async function submitComplaint(data) {
   let evidenceUrl     = null;
   let evidenceViewUrl = null;
 
+  // 1. Upload photo if attached
   if (data.photoFile) {
     try {
       const uploaded  = await uploadEvidencePhoto(data.photoFile);
@@ -125,12 +258,28 @@ export async function submitComplaint(data) {
     }
   }
 
+  // 2. Run AI analysis — this determines priority, category, anonymous, aiReason
+  const aiResult = await analyzeComplaint(data.title, data.desc);
+
+  // 3. Remove photoFile before saving to Firestore
   const { photoFile, ...complaintData } = data;
 
+  // 4. Save to Firestore — AI fields override whatever the student selected
   const ref = await addDoc(complaintsRef, {
     ...complaintData,
+
+    // ── AI fields — these are what actually get stored ───────────
+    priority:   aiResult.priority,   // HIGH / MEDIUM / LOW
+    category:   aiResult.category,   // AI-detected category
+    anonymous:  aiResult.anonymous,  // YES / NO
+    aiReason:   aiResult.aiReason,   // Short explanation
+    aiAnalyzed: true,
+
+    // ── Photo ────────────────────────────────────────────────────
     evidenceUrl,
     evidenceViewUrl,
+
+    // ── Status ───────────────────────────────────────────────────
     status:          "open",
     claimedBy:       null,
     claimedById:     null,
@@ -139,24 +288,30 @@ export async function submitComplaint(data) {
     updatedAt:       serverTimestamp(),
   });
 
+  // 5. In-app notification to student
   await createNotification({
     userId:      data.studentId,
     type:        "submitted",
     title:       "Complaint Submitted",
-    message:     `Your complaint "${data.title}" has been received and is under review.`,
+    message:     `Your complaint "${data.title}" has been received. AI Priority: ${aiResult.priority}.`,
     complaintId: ref.id,
   });
 
+  // 6. Email all porters
   await emailPorters({
     complaintTitle: data.title,
     hostel:         data.hostel,
     room:           data.room,
-    category:       data.category,
-    priority:       data.priority,
+    category:       aiResult.category,
+    priority:       aiResult.priority,
   });
 
-  return ref.id;
+  // 7. Return BOTH the id AND the aiResult so StudentApp can display it
+  return { id: ref.id, aiResult };
 }
+// ─────────────────────────────────────────────────────────────────
+//  COMPLAINTS — LISTEN
+// ─────────────────────────────────────────────────────────────────
 
 export function listenAllComplaints(callback) {
   const q = query(complaintsRef, orderBy("submittedAt", "desc"));
@@ -166,12 +321,19 @@ export function listenAllComplaints(callback) {
 }
 
 export function listenStudentComplaints(studentId, callback) {
-  const q = query(complaintsRef, orderBy("submittedAt", "desc"));
+  const q = query(
+    complaintsRef,
+    where("studentId", "==", studentId),
+    orderBy("submittedAt", "desc")
+  );
   return onSnapshot(q, (snap) => {
-    const all = snap.docs.map(formatComplaint).filter(c => c.studentId === studentId);
-    callback(all);
+    callback(snap.docs.map(formatComplaint));
   });
 }
+
+// ─────────────────────────────────────────────────────────────────
+//  COMPLAINTS — CLAIM & UPDATE
+// ─────────────────────────────────────────────────────────────────
 
 export async function claimComplaint(complaintId, porterName, porterUid) {
   const { getDoc } = await import("firebase/firestore");
@@ -314,10 +476,9 @@ export async function deletePorter(porterUid) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  BLOCKS & ROOMS MANAGEMENT ← ALL NEW
+//  BLOCKS & ROOMS
 // ─────────────────────────────────────────────────────────────────
 
-// Listen to all blocks in real time
 export function listenBlocks(callback) {
   const q = query(blocksRef, orderBy("createdAt", "asc"));
   return onSnapshot(q, (snap) => {
@@ -325,7 +486,6 @@ export function listenBlocks(callback) {
   });
 }
 
-// Add a new block
 export async function addBlock(blockName) {
   await addDoc(blocksRef, {
     name:      blockName.trim(),
@@ -334,19 +494,16 @@ export async function addBlock(blockName) {
   });
 }
 
-// Delete a block and all its rooms
 export async function deleteBlock(blockId) {
   await deleteDoc(doc(db, "blocks", blockId));
 }
 
-// Add a room to a block
 export async function addRoom(blockId, roomName) {
   await updateDoc(doc(db, "blocks", blockId), {
     rooms: arrayUnion(roomName.trim()),
   });
 }
 
-// Remove a room from a block
 export async function removeRoom(blockId, roomName) {
   await updateDoc(doc(db, "blocks", blockId), {
     rooms: arrayRemove(roomName),
@@ -356,6 +513,7 @@ export async function removeRoom(blockId, roomName) {
 // ─────────────────────────────────────────────────────────────────
 //  HELPERS
 // ─────────────────────────────────────────────────────────────────
+
 function formatComplaint(d) {
   const data = d.data();
   return {

@@ -1,30 +1,23 @@
 import React from 'react'
 import { useState, useEffect } from "react";
-import { submitComplaint, listenStudentComplaints, listenStudentNotifications, markNotificationRead, markAllNotificationsRead } from "./complaintsService.js";
+import {
+  submitComplaint,
+  listenStudentComplaints,
+  listenStudentNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  listenBlocks,
+} from "./complaintsService.js";
 import { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import LogoutModal from "./LogoutModal.jsx";
 import {
-  LayoutDashboard,
-  PlusCircle,
-  ClipboardList,
-  History,
-  Bell,
-  User,
-  HelpCircle,
-  MessageCircle,
-  Building2,
-  ChevronRight,
-  LogOut,
-  AlertCircle,
-  CheckCircle2,
-  Flame,
-  Info,
-  BellRing,
-  Clock,
-  Wrench,
-  Camera,
-  X,
+  LayoutDashboard, PlusCircle, ClipboardList, History,
+  Bell, User, HelpCircle, MessageCircle, Building2,
+  ChevronRight, LogOut, AlertCircle, CheckCircle2,
+  Flame, Info, BellRing, Clock, Wrench, Camera, X,
 } from "lucide-react";
+
+// ─── CONSTANTS ─────────────────────────────────────────────────────
 
 const PAGE_TITLES = {
   dashboard: "Dashboard",
@@ -44,23 +37,41 @@ const STATUS_CONFIG = {
   open:     { label: "Open",        dot: "bg-blue-500",    badge: "bg-blue-50 text-blue-600 ring-blue-200"          },
 };
 
+// These match what AI returns — HIGH/MEDIUM/LOW (uppercase)
 const PRIORITY_CONFIG = {
+  HIGH:   { label: "High",   badge: "bg-red-50 text-red-600 ring-red-200"             },
+  MEDIUM: { label: "Medium", badge: "bg-amber-50 text-amber-600 ring-amber-200"       },
+  LOW:    { label: "Low",    badge: "bg-emerald-50 text-emerald-600 ring-emerald-200" },
+  // Fallback for old lowercase data
   high:   { label: "High",   badge: "bg-red-50 text-red-600 ring-red-200"             },
   medium: { label: "Medium", badge: "bg-amber-50 text-amber-600 ring-amber-200"       },
   low:    { label: "Low",    badge: "bg-emerald-50 text-emerald-600 ring-emerald-200" },
 };
 
 const CATEGORY_ICONS = {
-  Plumbing: "🔧", Electrical: "💡", Furniture: "🪑",
-  Security: "🔒", Pest: "🐛",       Cleaning: "🧹", Other: "📌",
+  Plumbing:    "🔧",
+  Electricity: "💡",
+  Electrical:  "💡",
+  Furniture:   "🪑",
+  Security:    "🔒",
+  Pest:        "🐛",
+  Cleaning:    "🧹",
+  Maintenance: "🔨",
+  Internet:    "📶",
+  Sanitation:  "🧼",
+  Staff:       "👤",
+  Noise:       "🔊",
+  Other:       "📌",
 };
 
 const NOTIF_CONFIG = {
-  submitted: { icon: ClipboardList, bg: "bg-blue-50",    iconColor: "text-[#1447A3]",   border: "border-blue-100"   },
-  claimed:   { icon: Wrench,        bg: "bg-amber-50",   iconColor: "text-amber-500",   border: "border-amber-100"  },
-  progress:  { icon: Clock,         bg: "bg-purple-50",  iconColor: "text-purple-500",  border: "border-purple-100" },
-  resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100"},
+  submitted: { icon: ClipboardList, bg: "bg-blue-50",    iconColor: "text-[#1447A3]",   border: "border-blue-100"    },
+  claimed:   { icon: Wrench,        bg: "bg-amber-50",   iconColor: "text-amber-500",   border: "border-amber-100"   },
+  progress:  { icon: Clock,         bg: "bg-purple-50",  iconColor: "text-purple-500",  border: "border-purple-100"  },
+  resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100" },
 };
+
+// ─── REUSABLE COMPONENTS ───────────────────────────────────────────
 
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.open;
@@ -69,6 +80,17 @@ function StatusBadge({ status }) {
                       text-xs font-semibold ring-1 ${cfg.badge}`}>
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
       {cfg.label}
+    </span>
+  );
+}
+
+function PriorityBadge({ priority }) {
+  const cfg = PRIORITY_CONFIG[priority] ?? PRIORITY_CONFIG.MEDIUM;
+  const icons = { HIGH: "🔴", MEDIUM: "🟡", LOW: "🟢", high: "🔴", medium: "🟡", low: "🟢" };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                      text-xs font-bold ring-1 ${cfg.badge}`}>
+      {icons[priority] ?? "🟡"} {cfg.label}
     </span>
   );
 }
@@ -105,6 +127,7 @@ function QuickAction({ icon: Icon, iconBg, iconColor, label, desc, onClick }) {
 }
 
 // ─── SIDEBAR ───────────────────────────────────────────────────────
+
 function Sidebar({ active, setActive, user, onLogout, unreadCount }) {
   const NAV_SECTIONS = [
     {
@@ -166,13 +189,15 @@ function Sidebar({ active, setActive, user, onLogout, unreadCount }) {
               {section.label}
             </p>
             {section.items.map((item) => {
-              const Icon = item.icon;
+              const Icon     = item.icon;
               const isActive = active === item.id;
               return (
                 <button key={item.id} onClick={() => setActive(item.id)}
                         className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
                                      transition-all duration-150 text-left
-                                     ${isActive ? "bg-white text-[#1447A3]" : "text-blue-100/70 hover:text-white hover:bg-white/10"}`}>
+                                     ${isActive
+                                       ? "bg-white text-[#1447A3]"
+                                       : "text-blue-100/70 hover:text-white hover:bg-white/10"}`}>
                   <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-[#1447A3]" : "text-blue-200"}`} />
                   <span className="flex-1">{item.label}</span>
                   {item.badge ? (
@@ -211,6 +236,7 @@ function Sidebar({ active, setActive, user, onLogout, unreadCount }) {
 }
 
 // ─── TOPBAR ────────────────────────────────────────────────────────
+
 function Topbar({ pageTitle, user, onLogout, onNavigate, unreadCount }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
@@ -257,6 +283,7 @@ function Topbar({ pageTitle, user, onLogout, onNavigate, unreadCount }) {
 }
 
 // ─── NOTIFICATIONS VIEW ────────────────────────────────────────────
+
 function NotificationsView({ user }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading]             = useState(true);
@@ -284,13 +311,11 @@ function NotificationsView({ user }) {
     await markNotificationRead(id);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[70vh]">
-        <div className="w-8 h-8 border-4 border-blue-100 border-t-[#1447A3] rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center h-[70vh]">
+      <div className="w-8 h-8 border-4 border-blue-100 border-t-[#1447A3] rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-6 w-full max-w-2xl mx-auto">
@@ -329,7 +354,7 @@ function NotificationsView({ user }) {
       ) : (
         <div className="space-y-3">
           {notifications.map((n) => {
-            const cfg = NOTIF_CONFIG[n.type] ?? NOTIF_CONFIG.submitted;
+            const cfg  = NOTIF_CONFIG[n.type] ?? NOTIF_CONFIG.submitted;
             const Icon = cfg.icon;
             return (
               <div key={n.id} onClick={() => handleMarkOne(n.id, n.read)}
@@ -371,6 +396,7 @@ function NotificationsView({ user }) {
 }
 
 // ─── PROFILE VIEW ──────────────────────────────────────────────────
+
 function ProfileView({ user }) {
   const [photo, setPhoto]           = useState(null);
   const [uploading, setUploading]   = useState(false);
@@ -401,10 +427,9 @@ function ProfileView({ user }) {
 
   const handlePasswordChange = async () => {
     setPwMsg(null);
-    if (!pwForm.current)                return setPwMsg({ type: "error", text: "Enter your current password."                });
-    if (pwForm.newPw.length < 6)        return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
-    if (pwForm.newPw !== pwForm.confirm) return setPwMsg({ type: "error", text: "Passwords do not match."                    });
-
+    if (!pwForm.current)                 return setPwMsg({ type: "error", text: "Enter your current password."                });
+    if (pwForm.newPw.length < 6)         return setPwMsg({ type: "error", text: "New password must be at least 6 characters." });
+    if (pwForm.newPw !== pwForm.confirm)  return setPwMsg({ type: "error", text: "Passwords do not match."                    });
     setPwSaving(true);
     try {
       const auth        = getAuth();
@@ -429,11 +454,11 @@ function ProfileView({ user }) {
   };
 
   const INFO_ROWS = [
-    { label: "Full Name",     value: user.name,   icon: User         },
-    { label: "Matric Number", value: user.matric, icon: ClipboardList },
-    { label: "Hostel Block",  value: user.hostel, icon: Building2     },
-    { label: "Room Number",   value: user.room,   icon: Building2     },
-    { label: "Role",          value: "Student",   icon: CheckCircle2  },
+    { label: "Full Name",     value: user.name,   icon: User          },
+    { label: "Matric Number", value: user.matric, icon: ClipboardList  },
+    { label: "Hostel Block",  value: user.hostel, icon: Building2      },
+    { label: "Room Number",   value: user.room,   icon: Building2      },
+    { label: "Role",          value: "Student",   icon: CheckCircle2   },
   ];
 
   return (
@@ -506,7 +531,6 @@ function ProfileView({ user }) {
           </div>
           <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showPwForm ? "rotate-90" : ""}`} />
         </button>
-
         {showPwForm && (
           <div className="px-5 pb-5 space-y-4 border-t border-slate-100">
             <div className="space-y-3 pt-4">
@@ -561,6 +585,7 @@ function ProfileView({ user }) {
 }
 
 // ─── PLACEHOLDER ───────────────────────────────────────────────────
+
 function PlaceholderView({ id }) {
   const icons = {
     faq:  <HelpCircle    className="w-14 h-14 text-blue-300 mx-auto" />,
@@ -579,6 +604,7 @@ function PlaceholderView({ id }) {
 }
 
 // ─── DASHBOARD VIEW ────────────────────────────────────────────────
+
 function DashboardView({ setActive, user }) {
   const [complaints, setComplaints] = React.useState([]);
   React.useEffect(() => {
@@ -589,7 +615,7 @@ function DashboardView({ setActive, user }) {
   const total    = complaints.length;
   const pending  = complaints.filter(c => c.status === "open" || c.status === "progress").length;
   const resolved = complaints.filter(c => c.status === "resolved").length;
-  const urgent   = complaints.filter(c => c.status === "urgent").length;
+  const urgent   = complaints.filter(c => c.status === "urgent" || c.priority === "HIGH").length;
   const recent   = complaints.slice(0, 4);
 
   return (
@@ -622,7 +648,7 @@ function DashboardView({ setActive, user }) {
         <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-[#1447A3]"   label="Total Complaints" value={total}    sub="Since session start" subColor="text-slate-400"   />
         <StatCard icon={AlertCircle}   iconBg="bg-amber-50"   iconColor="text-amber-500"   label="Pending"          value={pending}  sub="Awaiting action"     subColor="text-amber-500"   />
         <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="Resolved"         value={resolved} sub="↑ Great progress!"   subColor="text-emerald-500" />
-        <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent}   sub="Needs attention"     subColor="text-red-500"     />
+        <StatCard icon={Flame}         iconBg="bg-red-50"     iconColor="text-red-500"     label="High Priority"    value={urgent}   sub="AI flagged urgent"   subColor="text-red-500"     />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
@@ -679,11 +705,10 @@ function DashboardView({ setActive, user }) {
       <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-[#1447A3] flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-bold text-[#1447A3]">Complaint Response Policy</p>
+          <p className="text-sm font-bold text-[#1447A3]">AI-Powered Complaint System</p>
           <p className="text-sm text-blue-700 mt-0.5">
-            All complaints are reviewed within <strong>24 hours</strong>. Urgent issues are
-            escalated immediately to the hostel porter. You will receive a notification
-            when your complaint status changes.
+            Your complaints are automatically analyzed by AI to determine priority and detect
+            sensitive issues. Anonymous complaints are protected — your name will not be shown to porters.
           </p>
         </div>
       </div>
@@ -691,60 +716,48 @@ function DashboardView({ setActive, user }) {
   );
 }
 
-// ─── SUBMIT COMPLAINT VIEW ─────────────────────────────────────────
+// ─── SUBMIT COMPLAINT VIEW — 3 steps only, NO priority step ────────
 function SubmitComplaintView({ setActive, user }) {
-  const [step, setStep]             = useState(1);
-  const [submitted, setSubmitted]   = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [photoFile, setPhotoFile]   = useState(null);     // ← NEW
-  const [photoPreview, setPhotoPreview] = useState(null); // ← NEW
-  const [form, setForm]             = useState({
-    hostel: "", room: "", category: "", title: "", description: "", priority: "",
+  const [step, setStep]                 = useState(1);
+  const [submitted, setSubmitted]       = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [photoFile, setPhotoFile]       = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [aiResult, setAiResult]         = useState(null);
+  const [blocks, setBlocks]             = useState([]); // ← live from Firestore
+  const [blocksLoading, setBlocksLoading] = useState(true);
+  const [form, setForm]                 = useState({
+    hostel: "", room: "", title: "", description: "",
+    // category and priority removed — AI decides both
   });
 
-  const photoInputRef = React.useRef(); // ← NEW
+  const photoInputRef = React.useRef();
 
-  const HOSTELS = [
-    "Block A (Male Hostel)", "Block B (Female Hostel)",
-    "Block C (Mixed)",       "Block D (Postgraduate)",
-  ];
+  // Load blocks from Firestore in real time
+  useEffect(() => {
+    const unsub = listenBlocks((data) => {
+      setBlocks(data);
+      setBlocksLoading(false);
+    });
+    return () => unsub();
+  }, []);
 
-  const CATEGORIES = [
-    { value: "Plumbing",   icon: "🔧", desc: "Pipes, taps, toilets, drainage"  },
-    { value: "Electrical", icon: "💡", desc: "Power, sockets, lighting"         },
-    { value: "Furniture",  icon: "🪑", desc: "Beds, wardrobes, desks, chairs"  },
-    { value: "Security",   icon: "🔒", desc: "Locks, doors, windows, gates"     },
-    { value: "Pest",       icon: "🐛", desc: "Insects, rodents, infestation"    },
-    { value: "Cleaning",   icon: "🧹", desc: "Sanitation, waste, hygiene"       },
-    { value: "Other",      icon: "📌", desc: "Anything not listed above"        },
-  ];
-
-  const PRIORITIES = [
-    { value: "low",    icon: <CheckCircle2 className="w-5 h-5" />, label: "Low",           desc: "Minor issue, not urgent",   border: "border-emerald-400", bg: "bg-emerald-50", text: "text-emerald-700", iconColor: "text-emerald-500" },
-    { value: "medium", icon: <AlertCircle  className="w-5 h-5" />, label: "Medium",        desc: "Needs attention soon",      border: "border-amber-400",   bg: "bg-amber-50",   text: "text-amber-700",   iconColor: "text-amber-500"   },
-    { value: "high",   icon: <Flame        className="w-5 h-5" />, label: "High / Urgent", desc: "Immediate action required", border: "border-red-400",     bg: "bg-red-50",     text: "text-red-700",     iconColor: "text-red-500"     },
-  ];
-
+  // 3 steps: Location → Details → Review
   const STEPS = [
     { n: 1, label: "Location", icon: <Building2     className="w-4 h-4" /> },
     { n: 2, label: "Details",  icon: <ClipboardList className="w-4 h-4" /> },
-    { n: 3, label: "Priority", icon: <Flame         className="w-4 h-4" /> },
-    { n: 4, label: "Review",   icon: <CheckCircle2  className="w-4 h-4" /> },
+    { n: 3, label: "Review",   icon: <CheckCircle2  className="w-4 h-4" /> },
   ];
 
-  const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
+  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
-  // ── NEW: handle photo selection ──────────────────────────────────
   const handlePhotoSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Validate — max 2MB
     if (file.size > 2 * 1024 * 1024) {
-      alert("Photo must be smaller than 2MB. Please choose a smaller image.");
+      alert("Photo must be smaller than 2MB.");
       return;
     }
-
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
@@ -752,41 +765,44 @@ function SubmitComplaintView({ setActive, user }) {
   const handleRemovePhoto = () => {
     setPhotoFile(null);
     setPhotoPreview(null);
-    // Reset the file input so the same file can be re-selected
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
+  // Get the rooms for the selected block
+  const selectedBlock   = blocks.find(b => b.name === form.hostel);
+  const availableRooms  = selectedBlock?.rooms ?? [];
+
   const canProceed = () => {
     if (step === 1) return form.hostel && form.room;
-    if (step === 2) return form.category && form.title && form.description.length >= 20;
-    if (step === 3) return form.priority;
+    if (step === 2) return form.title && form.description.length >= 20;
     return true;
   };
 
-  // ── UPDATED: pass studentEmail and photoFile ─────────────────────
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await submitComplaint({
+      const result = await submitComplaint({
         title:        form.title,
         desc:         form.description,
-        category:     form.category,
-        priority:     form.priority,
-        hostel:       form.hostel.split(" (")[0],
+        hostel:       form.hostel,
         room:         form.room,
         studentId:    user.uid,
         studentName:  user.name,
-        studentEmail: user.email,  // ← NEW — needed for email notifications
+        studentEmail: user.email,
         matric:       user.matric,
-        photoFile:    photoFile,   // ← NEW — null if no photo attached
+        photoFile:    photoFile,
+        // NO category, NO priority — AI sets both
       });
+      if (result?.aiResult) setAiResult(result.aiResult);
       setSubmitted(true);
     } catch (err) {
       console.error("Failed to submit complaint:", err);
+      alert("Failed to submit complaint. Please try again.");
     }
     setLoading(false);
   };
 
+  // ── Success screen ──────────────────────────────────────────────
   if (submitted) {
     return (
       <div className="flex items-center justify-center min-h-[80vh] p-6">
@@ -798,20 +814,49 @@ function SubmitComplaintView({ setActive, user }) {
           <div>
             <h2 className="text-2xl font-bold text-slate-800"
                 style={{ fontFamily: "'Playfair Display', serif" }}>Complaint Submitted!</h2>
-            <p className="text-slate-500 text-sm mt-2">Your complaint has been logged and will be reviewed within 24 hours.</p>
+            <p className="text-slate-500 text-sm mt-2">
+              Your complaint has been logged and analyzed by AI.
+            </p>
           </div>
-          <div className="bg-[#1447A3] rounded-2xl px-6 py-5">
-            <p className="text-blue-200 text-xs uppercase tracking-widest mb-1">Status</p>
-            <p className="text-white text-lg font-bold"
-               style={{ fontFamily: "'Playfair Display', serif" }}>Saved to HostelDesk ✓</p>
-            <p className="text-blue-200 text-xs mt-2">Track it under "My Complaints"</p>
-          </div>
+
+          {/* AI Analysis result */}
+          {aiResult && (
+            <div className="bg-slate-800 rounded-2xl px-6 py-5 text-left space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">🤖</span>
+                <p className="text-slate-300 text-xs uppercase tracking-widest font-semibold">AI Analysis Result</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-400">Priority</span>
+                <PriorityBadge priority={aiResult.priority} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-400">Category</span>
+                <span className="text-sm text-white font-semibold">
+                  {CATEGORY_ICONS[aiResult.category] ?? "📌"} {aiResult.category}
+                </span>
+              </div>
+              {aiResult.anonymous === "YES" && (
+                <div className="bg-purple-900/40 border border-purple-700 rounded-xl px-4 py-3 mt-2">
+                  <p className="text-purple-300 text-xs font-semibold">
+                    🔒 Your complaint has been marked anonymous for your protection.
+                    Your name will not be visible to porters.
+                  </p>
+                </div>
+              )}
+              {aiResult.aiReason && (
+                <p className="text-xs text-slate-400 italic border-t border-slate-700 pt-3">
+                  {aiResult.aiReason}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="bg-slate-50 rounded-xl p-4 text-left space-y-2">
             {[
-              { label: "Category", value: form.category },
-              { label: "Location", value: `${form.hostel.split(" (")[0]} · ${form.room}` },
-              { label: "Priority", value: form.priority.charAt(0).toUpperCase() + form.priority.slice(1) },
-              { label: "Photo",    value: photoFile ? "✅ Attached" : "None" },
+              { label: "Hostel", value: form.hostel      },
+              { label: "Room",   value: form.room         },
+              { label: "Photo",  value: photoFile ? "✅ Attached" : "None" },
             ].map(r => (
               <div key={r.label} className="flex justify-between text-sm">
                 <span className="text-slate-400 font-medium">{r.label}</span>
@@ -819,10 +864,11 @@ function SubmitComplaintView({ setActive, user }) {
               </div>
             ))}
           </div>
+
           <div className="flex gap-3 pt-2">
             <button onClick={() => {
-              setSubmitted(false); setStep(1);
-              setForm({ hostel: "", room: "", category: "", title: "", description: "", priority: "" });
+              setSubmitted(false); setStep(1); setAiResult(null);
+              setForm({ hostel: "", room: "", title: "", description: "" });
               setPhotoFile(null); setPhotoPreview(null);
             }}
               className="flex-1 px-4 py-3 rounded-xl border border-slate-200
@@ -840,14 +886,30 @@ function SubmitComplaintView({ setActive, user }) {
     );
   }
 
+  // ── Multi-step form ─────────────────────────────────────────────
   return (
     <div className="p-4 md:p-6 w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>Submit a Complaint</h1>
-        <p className="text-sm text-slate-400 mt-1">Fill in the details below. Complaints are reviewed within 24 hours.</p>
+        <p className="text-sm text-slate-400 mt-1">
+          Fill in the details below. Priority and category are determined automatically by AI.
+        </p>
       </div>
 
+      {/* AI notice */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+        <span className="text-xl flex-shrink-0">🤖</span>
+        <div>
+          <p className="text-sm font-bold text-[#1447A3]">AI-Powered Analysis</p>
+          <p className="text-xs text-blue-700 mt-0.5">
+            Your complaint will be automatically analyzed to determine its priority and category.
+            Sensitive complaints are automatically marked anonymous to protect your identity.
+          </p>
+        </div>
+      </div>
+
+      {/* Step indicator */}
       <div className="flex items-center mb-8">
         {STEPS.map((s, i) => {
           const done   = s.n < step;
@@ -857,7 +919,7 @@ function SubmitComplaintView({ setActive, user }) {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center
                                  text-sm font-bold transition-all
-                                 ${done ? "bg-emerald-500 text-white"
+                                 ${done   ? "bg-emerald-500 text-white"
                                  : active ? "bg-[#1447A3] text-white ring-4 ring-blue-100"
                                           : "bg-slate-100 text-slate-400"}`}>
                   {done ? <CheckCircle2 className="w-4 h-4" /> : s.icon}
@@ -876,6 +938,7 @@ function SubmitComplaintView({ setActive, user }) {
         })}
       </div>
 
+      {/* ── Step 1: Location ───────────────────────────────────── */}
       {step === 1 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
@@ -884,45 +947,94 @@ function SubmitComplaintView({ setActive, user }) {
                 <Building2 className="w-5 h-5 text-[#1447A3]" />
                 <h3 className="text-base font-bold text-slate-700">Your Location</h3>
               </div>
-              <p className="text-sm text-slate-400">Tell us which hostel and room the issue is in.</p>
+              <p className="text-sm text-slate-400">Select your hostel block and room number.</p>
             </div>
+
+            {/* Hostel block — from Firestore */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Hostel Block <span className="text-red-500">*</span>
               </label>
-              <select value={form.hostel} onChange={(e) => update("hostel", e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
-                                 text-slate-700 bg-white outline-none
-                                 focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100 transition-all">
-                <option value="">Select your hostel block...</option>
-                {HOSTELS.map((h) => <option key={h} value={h}>{h}</option>)}
-              </select>
+              {blocksLoading ? (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-200">
+                  <div className="w-4 h-4 border-2 border-slate-200 border-t-[#1447A3] rounded-full animate-spin" />
+                  <span className="text-sm text-slate-400">Loading blocks...</span>
+                </div>
+              ) : blocks.length === 0 ? (
+                <div className="px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
+                  <p className="text-sm text-amber-700 font-medium">
+                    No hostel blocks available yet. Please contact the Head Porter.
+                  </p>
+                </div>
+              ) : (
+                <select
+                  value={form.hostel}
+                  onChange={e => update("hostel", e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                             text-slate-700 bg-white outline-none
+                             focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100 transition-all">
+                  <option value="">Select your hostel block...</option>
+                  {blocks.map(b => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
+
+            {/* Room — from selected block's rooms array */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Room Number <span className="text-red-500">*</span>
               </label>
-              <input type="text" value={form.room} onChange={(e) => update("room", e.target.value)}
-                     placeholder="e.g. Room 14, Room 7B..."
-                     className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
-                                text-slate-700 outline-none focus:border-[#1447A3] focus:ring-2
-                                focus:ring-blue-100 transition-all placeholder:text-slate-300" />
+              {!form.hostel ? (
+                <div className="px-4 py-3 rounded-xl border border-slate-100 bg-slate-50">
+                  <p className="text-sm text-slate-400 italic">Select a hostel block first</p>
+                </div>
+              ) : availableRooms.length === 0 ? (
+                // No rooms in Firestore — allow manual entry
+                <input
+                  type="text"
+                  value={form.room}
+                  onChange={e => update("room", e.target.value)}
+                  placeholder="e.g. Room 14, Room 7B..."
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                             text-slate-700 outline-none focus:border-[#1447A3] focus:ring-2
+                             focus:ring-blue-100 transition-all placeholder:text-slate-300"
+                />
+              ) : (
+                // Rooms exist — show dropdown
+                <select
+                  value={form.room}
+                  onChange={e => update("room", e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                             text-slate-700 bg-white outline-none
+                             focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100 transition-all">
+                  <option value="">Select your room...</option>
+                  {[...availableRooms].sort().map(room => (
+                    <option key={room} value={room}>{room}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
+
           <div className="bg-[#1447A3] rounded-2xl p-6 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-white text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
-                Where is the issue?
-              </h3>
+              <h3 className="text-white text-xl font-bold"
+                  style={{ fontFamily: "'Playfair Display', serif" }}>Where is the issue?</h3>
               <p className="text-blue-200 text-sm leading-relaxed">
-                Let us know your exact hostel block and room number so the right porter is notified immediately.
+                Select your exact hostel block and room so the right porter is assigned immediately.
               </p>
             </div>
             <div className="mt-6 space-y-3">
-              {["Fast response routing", "Right porter notified", "Your room tracked"].map((tip) => (
+              {[
+                "Blocks managed by Head Porter",
+                "Right porter notified instantly",
+                "Your room location tracked",
+              ].map(tip => (
                 <div key={tip} className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-blue-300 flex-shrink-0" />
                   <span className="text-blue-100 text-sm">{tip}</span>
@@ -933,58 +1045,77 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
+      {/* ── Step 2: Details ────────────────────────────────────── */}
       {step === 2 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <ClipboardList className="w-5 h-5 text-[#1447A3]" />
                 <h3 className="text-base font-bold text-slate-700">Complaint Details</h3>
               </div>
-              <p className="text-sm text-slate-400">Describe the issue clearly so we can resolve it faster.</p>
+              <p className="text-sm text-slate-400">
+                Describe the issue clearly. The AI will determine the category and priority automatically.
+              </p>
             </div>
+
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Complaint Title <span className="text-red-500">*</span>
               </label>
-              <input type="text" value={form.title} onChange={(e) => update("title", e.target.value)}
-                     placeholder="Brief title e.g. Burst pipe under sink..."
-                     className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
-                                text-slate-700 outline-none focus:border-[#1447A3] focus:ring-2
-                                focus:ring-blue-100 transition-all placeholder:text-slate-300" />
+              <input
+                type="text"
+                value={form.title}
+                onChange={e => update("title", e.target.value)}
+                placeholder="Brief title e.g. Burst pipe under sink, No electricity in block..."
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                           text-slate-700 outline-none focus:border-[#1447A3] focus:ring-2
+                           focus:ring-blue-100 transition-all placeholder:text-slate-300"
+              />
             </div>
+
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Description <span className="text-red-500">*</span>
               </label>
-              <textarea value={form.description} onChange={(e) => update("description", e.target.value)}
-                        rows={5} placeholder="Describe the issue in detail..."
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
-                                   text-slate-700 outline-none resize-none leading-relaxed
-                                   focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100
-                                   transition-all placeholder:text-slate-300" />
+              <textarea
+                value={form.description}
+                onChange={e => update("description", e.target.value)}
+                rows={6}
+                placeholder="Describe the issue in as much detail as possible. Include when it started, how many people are affected, and any safety concerns..."
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm
+                           text-slate-700 outline-none resize-none leading-relaxed
+                           focus:border-[#1447A3] focus:ring-2 focus:ring-blue-100
+                           transition-all placeholder:text-slate-300"
+              />
               <div className="flex justify-between">
-                <p className="text-xs text-slate-400">Minimum 20 characters</p>
+                <p className="text-xs text-slate-400">Minimum 20 characters. More detail = better AI analysis.</p>
                 <p className={`text-xs font-semibold ${form.description.length >= 20 ? "text-emerald-500" : "text-slate-400"}`}>
-                  {form.description.length} characters
+                  {form.description.length} chars
                 </p>
               </div>
             </div>
 
-            {/* ── PHOTO UPLOAD ── NEW ─────────────────────────────── */}
+            {/* AI info box */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-start gap-3">
+              <span className="text-base flex-shrink-0">🤖</span>
+              <div>
+                <p className="text-xs font-bold text-slate-600">AI will automatically detect:</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Priority level · Complaint category · Whether your identity should be protected
+                </p>
+              </div>
+            </div>
+
+            {/* Photo upload */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Photo Evidence <span className="text-slate-300 font-normal normal-case">(Optional)</span>
+                Photo Evidence{" "}
+                <span className="text-slate-300 font-normal normal-case">(Optional, max 2MB)</span>
               </label>
-              <p className="text-xs text-slate-400">
-                Attach a photo of the issue to help the porter understand the problem. Max 2MB.
-              </p>
-
               {photoPreview ? (
-                // Preview of selected photo
                 <div className="relative rounded-xl overflow-hidden border border-slate-200">
-                  <img src={photoPreview} alt="Evidence preview"
-                       className="w-full h-44 object-cover" />
+                  <img src={photoPreview} alt="Evidence preview" className="w-full h-44 object-cover" />
                   <button onClick={handleRemovePhoto}
                           className="absolute top-2 right-2 w-7 h-7 bg-red-500 rounded-full
                                      flex items-center justify-center hover:bg-red-600 transition-colors shadow">
@@ -995,7 +1126,6 @@ function SubmitComplaintView({ setActive, user }) {
                   </div>
                 </div>
               ) : (
-                // Upload prompt
                 <label className="flex flex-col items-center justify-center h-32 border-2
                                    border-dashed border-slate-200 rounded-xl cursor-pointer
                                    hover:border-[#1447A3] hover:bg-blue-50 transition-all group">
@@ -1004,104 +1134,17 @@ function SubmitComplaintView({ setActive, user }) {
                     Tap to attach photo
                   </span>
                   <span className="text-xs text-slate-300 mt-0.5">JPG, PNG — max 2MB</span>
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoSelect}
-                  />
+                  <input ref={photoInputRef} type="file" accept="image/*"
+                         className="hidden" onChange={handlePhotoSelect} />
                 </label>
               )}
             </div>
-            {/* ── END PHOTO UPLOAD ───────────────────────────────── */}
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Info className="w-5 h-5 text-[#1447A3]" />
-                <h3 className="text-base font-bold text-slate-700">Select Category</h3>
-              </div>
-              <p className="text-sm text-slate-400">Pick the type of issue you are reporting.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {CATEGORIES.map((cat) => (
-                <button key={cat.value} onClick={() => update("category", cat.value)}
-                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2
-                                     text-center transition-all
-                                     ${form.category === cat.value
-                                       ? "border-[#1447A3] bg-blue-50"
-                                       : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"}`}>
-                  <span className="text-3xl">{cat.icon}</span>
-                  <span className={`text-xs font-bold leading-tight
-                    ${form.category === cat.value ? "text-[#1447A3]" : "text-slate-600"}`}>{cat.value}</span>
-                  <span className="text-[10px] text-slate-400 leading-tight">{cat.desc}</span>
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       )}
 
+      {/* ── Step 3: Review ─────────────────────────────────────── */}
       {step === 3 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Flame className="w-5 h-5 text-[#1447A3]" />
-                <h3 className="text-base font-bold text-slate-700">Priority Level</h3>
-              </div>
-              <p className="text-sm text-slate-400">How urgent is this issue?</p>
-            </div>
-            <div className="space-y-3">
-              {PRIORITIES.map((p) => (
-                <button key={p.value} onClick={() => update("priority", p.value)}
-                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2
-                                     text-left transition-all
-                                     ${form.priority === p.value ? `${p.border} ${p.bg}` : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0
-                                   ${form.priority === p.value ? p.bg : "bg-slate-100"}`}>
-                    <span className={form.priority === p.value ? p.iconColor : "text-slate-400"}>{p.icon}</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className={`text-sm font-bold ${form.priority === p.value ? p.text : "text-slate-700"}`}>{p.label}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{p.desc}</p>
-                  </div>
-                  {form.priority === p.value && <CheckCircle2 className={`w-5 h-5 flex-shrink-0 ${p.iconColor}`} />}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-2xl p-6 flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                <Flame className="w-6 h-6 text-amber-400" />
-              </div>
-              <h3 className="text-white text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
-                How urgent is it?
-              </h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                Choosing the right priority helps us respond faster to the most critical issues first.
-              </p>
-            </div>
-            <div className="mt-6 space-y-3">
-              {[
-                { label: "Low — resolved within 7 days",    color: "text-emerald-400" },
-                { label: "Medium — resolved within 3 days", color: "text-amber-400"   },
-                { label: "High — resolved within 24 hours", color: "text-red-400"     },
-              ].map((tip) => (
-                <div key={tip.label} className="flex items-center gap-2.5">
-                  <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${tip.color}`} />
-                  <span className="text-slate-300 text-sm">{tip.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {step === 4 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <div>
@@ -1111,14 +1154,13 @@ function SubmitComplaintView({ setActive, user }) {
               </div>
               <p className="text-sm text-slate-400">Please review your complaint before submitting.</p>
             </div>
+
             <div className="bg-slate-50 rounded-xl divide-y divide-slate-200">
               {[
-                { label: "Hostel Block", value: form.hostel.split(" (")[0] },
-                { label: "Room Number",  value: form.room },
-                { label: "Category",     value: `${CATEGORY_ICONS[form.category] ?? "📌"} ${form.category}` },
-                { label: "Priority",     value: form.priority.charAt(0).toUpperCase() + form.priority.slice(1) },
+                { label: "Hostel Block", value: form.hostel },
+                { label: "Room Number",  value: form.room   },
                 { label: "Photo",        value: photoFile ? "✅ Photo attached" : "No photo" },
-              ].map((row) => (
+              ].map(row => (
                 <div key={row.label} className="flex justify-between items-center px-4 py-3">
                   <span className="text-sm text-slate-400 font-medium">{row.label}</span>
                   <span className="text-sm text-slate-700 font-semibold">{row.value}</span>
@@ -1126,11 +1168,9 @@ function SubmitComplaintView({ setActive, user }) {
               ))}
             </div>
 
-            {/* Show photo preview on review step */}
             {photoPreview && (
               <div className="rounded-xl overflow-hidden border border-slate-100">
-                <img src={photoPreview} alt="Evidence"
-                     className="w-full h-36 object-cover" />
+                <img src={photoPreview} alt="Evidence" className="w-full h-36 object-cover" />
               </div>
             )}
 
@@ -1142,28 +1182,35 @@ function SubmitComplaintView({ setActive, user }) {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Description</p>
               <p className="text-sm text-slate-600 leading-relaxed">{form.description}</p>
             </div>
+
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3">
-              <Info className="w-4 h-4 text-[#1447A3] flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-700">Once submitted, your complaint will appear instantly in "My Complaints".</p>
+              <span className="text-base flex-shrink-0">🤖</span>
+              <p className="text-xs text-blue-700">
+                After you submit, AI will automatically assign the priority, category, and detect
+                if your complaint needs anonymous protection.
+              </p>
             </div>
           </div>
+
           <div className="bg-emerald-600 rounded-2xl p-6 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <CheckCircle2 className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-white text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
-                Almost done!
-              </h3>
-              <p className="text-emerald-100 text-sm leading-relaxed">Review your complaint carefully before submitting.</p>
+              <h3 className="text-white text-xl font-bold"
+                  style={{ fontFamily: "'Playfair Display', serif" }}>Almost done!</h3>
+              <p className="text-emerald-100 text-sm leading-relaxed">
+                Review your complaint carefully before submitting.
+              </p>
             </div>
             <div className="mt-6 space-y-3">
               {[
-                "Saved to Firestore instantly",
-                "You can track it in real time",
-                "Porter will be notified by email",
+                "Saved to database instantly",
+                "AI analyzes priority automatically",
+                "Sensitive complaints marked anonymous",
+                "Porter notified by email",
                 photoFile ? "📷 Photo evidence attached" : "No photo attached",
-              ].map((tip) => (
+              ].map(tip => (
                 <div key={tip} className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-200 flex-shrink-0" />
                   <span className="text-emerald-100 text-sm">{tip}</span>
@@ -1174,28 +1221,29 @@ function SubmitComplaintView({ setActive, user }) {
         </div>
       )}
 
+      {/* Navigation */}
       <div className="flex items-center justify-between mt-6">
-        <button onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1}
+        <button onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200
                            text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors
                            disabled:opacity-40 disabled:cursor-not-allowed">
           <ChevronRight className="w-4 h-4 rotate-180" /> Back
         </button>
-        {step < 4 ? (
-          <button onClick={() => setStep((s) => s + 1)} disabled={!canProceed()}
+        {step < 3 ? (
+          <button onClick={() => setStep(s => s + 1)} disabled={!canProceed()}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1447A3]
                              text-white text-sm font-semibold hover:bg-blue-800 transition-colors
                              disabled:opacity-40 disabled:cursor-not-allowed">
             Continue <ChevronRight className="w-4 h-4" />
           </button>
         ) : (
-          <button onClick={handleSubmit} disabled={loading}
+          <button onClick={handleSubmit} disabled={loading || !form.hostel || !form.room || !form.title || form.description.length < 20}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1447A3]
                              text-white text-sm font-semibold hover:bg-blue-800 transition-colors
                              disabled:opacity-60 disabled:cursor-not-allowed">
             {loading
               ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {photoFile ? "Uploading & Submitting…" : "Submitting…"}</>
+                  AI Analyzing & Submitting…</>
               : <><CheckCircle2 className="w-4 h-4" /> Submit Complaint</>}
           </button>
         )}
@@ -1203,8 +1251,8 @@ function SubmitComplaintView({ setActive, user }) {
     </div>
   );
 }
-
 // ─── MY COMPLAINTS VIEW ────────────────────────────────────────────
+
 function MyComplaintsView({ setActive, user }) {
   const [selected, setSelected]     = useState(null);
   const [filter, setFilter]         = useState("all");
@@ -1217,13 +1265,12 @@ function MyComplaintsView({ setActive, user }) {
 
   const filters = [
     { key: "all",      label: "All",         count: complaints.length                                      },
-    { key: "urgent",   label: "Urgent",      count: complaints.filter(c => c.status === "urgent").length   },
     { key: "open",     label: "Open",        count: complaints.filter(c => c.status === "open").length     },
     { key: "progress", label: "In Progress", count: complaints.filter(c => c.status === "progress").length },
     { key: "resolved", label: "Resolved",    count: complaints.filter(c => c.status === "resolved").length },
   ];
 
-  const filtered = complaints.filter((c) => filter === "all" || c.status === filter);
+  const filtered = complaints.filter(c => filter === "all" || c.status === filter);
 
   if (selected) {
     const c = selected;
@@ -1235,6 +1282,8 @@ function MyComplaintsView({ setActive, user }) {
         </button>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="col-span-1 md:col-span-2 space-y-5">
+
+            {/* Main complaint card */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
               <div className="flex items-start justify-between mb-4 gap-3">
                 <div className="min-w-0">
@@ -1242,7 +1291,7 @@ function MyComplaintsView({ setActive, user }) {
                   <h2 className="text-lg md:text-xl font-bold text-slate-800"
                       style={{ fontFamily: "'Playfair Display', serif" }}>{c.title}</h2>
                 </div>
-                <div className="flex-shrink-0"><StatusBadge status={c.status} /></div>
+                <StatusBadge status={c.status} />
               </div>
               <p className="text-sm text-slate-500 leading-relaxed">{c.desc}</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-slate-100">
@@ -1250,7 +1299,7 @@ function MyComplaintsView({ setActive, user }) {
                   { label: "Category",  value: `${CATEGORY_ICONS[c.category] ?? "📌"} ${c.category}` },
                   { label: "Location",  value: `${c.hostel} · ${c.room}`                              },
                   { label: "Submitted", value: c.submittedAt                                           },
-                ].map((row) => (
+                ].map(row => (
                   <div key={row.label}>
                     <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{row.label}</p>
                     <p className="text-sm font-semibold text-slate-700">{row.value}</p>
@@ -1259,7 +1308,39 @@ function MyComplaintsView({ setActive, user }) {
               </div>
             </div>
 
-            {/* ── PHOTO EVIDENCE — shown in detail view ── NEW ──── */}
+            {/* AI Analysis card — shown if AI ran */}
+            {c.aiAnalyzed && (
+              <div className="bg-slate-800 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-lg">🤖</span>
+                  <p className="text-sm font-bold text-slate-300">AI Analysis</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="bg-slate-700 rounded-xl p-3">
+                    <p className="text-xs text-slate-400 mb-1.5">Priority</p>
+                    <PriorityBadge priority={c.priority} />
+                  </div>
+                  <div className="bg-slate-700 rounded-xl p-3">
+                    <p className="text-xs text-slate-400 mb-1.5">Category</p>
+                    <p className="text-sm font-semibold text-white">
+                      {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
+                    </p>
+                  </div>
+                </div>
+                {c.anonymous === "YES" && (
+                  <div className="bg-purple-900/40 border border-purple-700 rounded-xl px-4 py-3 mb-3">
+                    <p className="text-purple-300 text-xs font-semibold">
+                      🔒 This complaint is marked anonymous — your name is hidden from porters
+                    </p>
+                  </div>
+                )}
+                {c.aiReason && (
+                  <p className="text-xs text-slate-400 italic">{c.aiReason}</p>
+                )}
+              </div>
+            )}
+
+            {/* Photo evidence */}
             {c.evidenceUrl && (
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">
@@ -1274,13 +1355,11 @@ function MyComplaintsView({ setActive, user }) {
               </div>
             )}
 
+            {/* Assignment info */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Priority</p>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                                  text-sm font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
-                  {c.priority ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1) : "—"}
-                </span>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">AI Priority</p>
+                <PriorityBadge priority={c.priority} />
               </div>
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Assigned To</p>
@@ -1302,15 +1381,16 @@ function MyComplaintsView({ setActive, user }) {
               </div>
             </div>
 
+            {/* Resolved confirmation */}
             {c.status === "resolved" && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-4">
                 <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-bold text-emerald-700">This complaint has been resolved</p>
-                  <p className="text-sm text-emerald-600 mt-1">Was your issue fixed properly? Confirm below.</p>
+                  <p className="text-sm text-emerald-600 mt-1">Was your issue fixed properly?</p>
                   <div className="flex gap-3 mt-3 flex-wrap">
                     <button className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors">
-                      Yes, it's fixed
+                      Yes, it's fixed ✓
                     </button>
                     <button className="px-4 py-2 rounded-xl border border-emerald-300 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors">
                       No, reopen it
@@ -1321,6 +1401,7 @@ function MyComplaintsView({ setActive, user }) {
             )}
           </div>
 
+          {/* Timeline */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 h-fit">
             <div className="flex items-center gap-2 mb-5">
               <History className="w-4 h-4 text-[#1447A3]" />
@@ -1331,7 +1412,7 @@ function MyComplaintsView({ setActive, user }) {
               <div className="space-y-6">
                 {[
                   { event: "Complaint submitted",   done: true                                               },
-                  { event: "Under review by admin", done: true                                               },
+                  { event: "AI analysis complete",  done: !!c.aiAnalyzed                                     },
                   { event: "Assigned to porter",    done: !!c.claimedBy                                      },
                   { event: "Work in progress",      done: c.status === "progress" || c.status === "resolved" },
                   { event: "Resolved & closed",     done: c.status === "resolved"                            },
@@ -1345,7 +1426,9 @@ function MyComplaintsView({ setActive, user }) {
                         : <div className="w-2 h-2 rounded-full bg-slate-300" />}
                     </div>
                     <div className="pt-0.5">
-                      <p className={`text-sm font-semibold ${t.done ? "text-slate-700" : "text-slate-400"}`}>{t.event}</p>
+                      <p className={`text-sm font-semibold ${t.done ? "text-slate-700" : "text-slate-400"}`}>
+                        {t.event}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -1364,7 +1447,7 @@ function MyComplaintsView({ setActive, user }) {
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-slate-800"
                 style={{ fontFamily: "'Playfair Display', serif" }}>My Complaints</h1>
-            <p className="text-sm text-slate-400 mt-1">Track and manage all your submitted complaints</p>
+            <p className="text-sm text-slate-400 mt-1">Track all your submitted complaints</p>
           </div>
           <button onClick={() => setActive("submit")}
                   className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#1447A3]
@@ -1377,7 +1460,7 @@ function MyComplaintsView({ setActive, user }) {
 
       <div className="w-full overflow-x-auto pb-3" style={{ WebkitOverflowScrolling: "touch" }}>
         <div className="flex gap-2 px-4 md:px-6" style={{ width: "max-content", minWidth: "100%" }}>
-          {filters.map((f) => (
+          {filters.map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold
                                  border transition-all whitespace-nowrap
@@ -1407,12 +1490,14 @@ function MyComplaintsView({ setActive, user }) {
             </div>
           </div>
         )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-          {filtered.map((c) => (
+          {filtered.map(c => (
             <div key={c.id} onClick={() => setSelected(c)}
-                 className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5
-                            hover:shadow-md hover:border-blue-200 cursor-pointer transition-all group">
+                 className={`bg-white rounded-2xl border shadow-sm p-4 md:p-5
+                             hover:shadow-md cursor-pointer transition-all group
+                             ${c.anonymous === "YES"
+                               ? "border-purple-100 hover:border-purple-200"
+                               : "border-slate-100 hover:border-blue-200"}`}>
               <div className="flex items-start justify-between mb-3 gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl flex-shrink-0">
@@ -1423,18 +1508,31 @@ function MyComplaintsView({ setActive, user }) {
                     <p className="text-sm font-bold text-slate-700 leading-tight truncate">{c.title}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Show camera icon if photo is attached */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   {c.evidenceUrl && (
                     <span title="Has photo evidence"
                           className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center">
                       <Camera className="w-3 h-3 text-[#1447A3]" />
                     </span>
                   )}
+                  {c.anonymous === "YES" && (
+                    <span title="Anonymous complaint"
+                          className="w-6 h-6 rounded-full bg-purple-50 flex items-center justify-center text-sm">
+                      🔒
+                    </span>
+                  )}
                   <StatusBadge status={c.status} />
                 </div>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-3">{c.desc}</p>
+
+              {/* AI priority shown on card */}
+              {c.priority && (
+                <div className="mb-3">
+                  <PriorityBadge priority={c.priority} />
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-3 border-t border-slate-50">
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-xs text-slate-400 truncate">{c.hostel} · {c.room}</span>
@@ -1454,6 +1552,7 @@ function MyComplaintsView({ setActive, user }) {
 }
 
 // ─── HISTORY VIEW ──────────────────────────────────────────────────
+
 function HistoryView({ user }) {
   const [complaints, setComplaints] = useState([]);
 
@@ -1474,10 +1573,10 @@ function HistoryView({ user }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
-          { label: "Total Submitted", value: complaints.length, Icon: ClipboardList, iconBg: "bg-blue-50",    iconColor: "text-[#1447A3]"   },
-          { label: "Resolved",        value: complaints.length, Icon: CheckCircle2,  iconBg: "bg-emerald-50", iconColor: "text-emerald-500" },
-          { label: "Avg. Resolution", value: "—",               Icon: History,       iconBg: "bg-amber-50",   iconColor: "text-amber-500"   },
-        ].map((s) => (
+          { label: "Resolved",        value: complaints.length, Icon: CheckCircle2, iconBg: "bg-emerald-50", iconColor: "text-emerald-500" },
+          { label: "Total Submitted", value: complaints.length, Icon: ClipboardList, iconBg: "bg-blue-50",   iconColor: "text-[#1447A3]"  },
+          { label: "Avg. Resolution", value: "—",               Icon: History,      iconBg: "bg-amber-50",  iconColor: "text-amber-500"   },
+        ].map(s => (
           <div key={s.label}
                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${s.iconBg}`}>
@@ -1512,14 +1611,14 @@ function HistoryView({ user }) {
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
-                  {["Title", "Category", "Location", "Submitted", "Assigned To", "Priority"].map((h) => (
+                  {["Title", "Category", "Location", "AI Priority", "Submitted", "Resolved By"].map(h => (
                     <th key={h} className="text-left text-[10px] font-bold text-slate-400
                                            uppercase tracking-wider px-5 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {complaints.map((c) => (
+                {complaints.map(c => (
                   <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
                     <td className="px-5 py-4 text-sm font-semibold text-slate-700 max-w-[160px]">
                       <p className="truncate">{c.title}</p>
@@ -1531,14 +1630,9 @@ function HistoryView({ user }) {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">{c.hostel} · {c.room}</td>
+                    <td className="px-5 py-4"><PriorityBadge priority={c.priority} /></td>
                     <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">{c.submittedAt}</td>
                     <td className="px-5 py-4 text-xs text-slate-600 font-medium">{c.claimedBy ?? "—"}</td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full
-                                        text-xs font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge ?? ""}`}>
-                        {c.priority ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1) : "—"}
-                      </span>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1551,6 +1645,7 @@ function HistoryView({ user }) {
 }
 
 // ─── APP ROOT ──────────────────────────────────────────────────────
+
 export default function StudentApp({ user, onLogout }) {
   const [active, setActive]               = useState("dashboard");
   const [showLogout, setShowLogout]       = useState(false);

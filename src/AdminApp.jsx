@@ -4,6 +4,11 @@ import {
   listenAllComplaints,
   listenPorters,
   deletePorter,
+  listenBlocks,
+  addBlock,
+  deleteBlock,
+  addRoom,
+  removeRoom,
 } from "./complaintsService.js";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -16,11 +21,8 @@ import {
   Wrench, Search, Trash2, Plus, Eye, EyeOff, X, Menu,
 } from "lucide-react";
 
+
 // ─── CONSTANTS ─────────────────────────────────────────────────────
-const BLOCKS_LIST = [
-  "Oyo Block", "Edo Block", "Ekiti Block", "Osun 1",
-  "Ondo Hall", "Abesan 1", "Abesan 2", "Anthony 1", "Anthony 2", "Anthony 3",
-];
 
 const NAV_SECTIONS = [
   {
@@ -79,13 +81,15 @@ const CAT_COLORS = [
 ];
 
 const HEALTH_CONFIG = {
-  great: { label: "All Clear",        bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500", text: "text-emerald-700" },
-  good:  { label: "Good",             bg: "bg-blue-50",    border: "border-blue-200",    dot: "bg-blue-500",    text: "text-blue-700"    },
-  fair:  { label: "Needs Attention",  bg: "bg-amber-50",   border: "border-amber-200",   dot: "bg-amber-500",   text: "text-amber-700"   },
-  poor:  { label: "High Load",        bg: "bg-red-50",     border: "border-red-200",     dot: "bg-red-500",     text: "text-red-700"     },
+  great: { label: "All Clear",       bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500", text: "text-emerald-700" },
+  good:  { label: "Good",            bg: "bg-blue-50",    border: "border-blue-200",    dot: "bg-blue-500",    text: "text-blue-700"    },
+  fair:  { label: "Needs Attention", bg: "bg-amber-50",   border: "border-amber-200",   dot: "bg-amber-500",   text: "text-amber-700"   },
+  poor:  { label: "High Load",       bg: "bg-red-50",     border: "border-red-200",     dot: "bg-red-500",     text: "text-red-700"     },
 };
 
-// ─── REUSABLE ──────────────────────────────────────────────────────
+
+// ─── REUSABLE BADGES ───────────────────────────────────────────────
+
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.open;
   return (
@@ -93,6 +97,26 @@ function StatusBadge({ status }) {
                       text-xs font-semibold ring-1 flex-shrink-0 ${cfg.badge}`}>
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
       {cfg.label}
+    </span>
+  );
+}
+
+function PriorityBadge({ priority }) {
+  const cfg = PRIORITY_CONFIG[priority] ?? PRIORITY_CONFIG.low;
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full
+                      text-xs font-semibold ring-1 flex-shrink-0 ${cfg.badge}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+function AnonymousBadge({ anonymous }) {
+  if (anonymous !== "YES") return null;
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                     text-xs font-semibold ring-1 bg-purple-50 text-purple-600 ring-purple-200">
+      🔒 Anonymous
     </span>
   );
 }
@@ -113,7 +137,9 @@ function StatCard({ icon: Icon, iconBg, iconColor, label, value, sub, subColor }
   );
 }
 
+
 // ─── SIDEBAR ───────────────────────────────────────────────────────
+
 function Sidebar({ active, setActive, user, onLogout, open, onClose }) {
   return (
     <>
@@ -205,7 +231,9 @@ function Sidebar({ active, setActive, user, onLogout, open, onClose }) {
   );
 }
 
+
 // ─── TOPBAR ────────────────────────────────────────────────────────
+
 function Topbar({ pageTitle, user, onMenuOpen, onLogout }) {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center
@@ -254,7 +282,9 @@ function Topbar({ pageTitle, user, onMenuOpen, onLogout }) {
   );
 }
 
+
 // ─── PLACEHOLDER ───────────────────────────────────────────────────
+
 function PlaceholderView({ id }) {
   return (
     <div className="flex items-center justify-center h-[70vh]">
@@ -268,15 +298,27 @@ function PlaceholderView({ id }) {
   );
 }
 
-// ─── ADD PORTER MODAL ──────────────────────────────────────────────
-function AddPorterModal({ onClose, onSuccess }) {
-  const [form, setForm]       = useState({ name: "", email: "", staffId: "", block: "", password: "" });
-  const [showPw, setShowPw]   = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
 
-  const BLOCKS = ["Block A", "Block B", "Block C", "Block D", "All Blocks"];
+// ─── ADD PORTER MODAL ──────────────────────────────────────────────
+
+function AddPorterModal({ onClose, onSuccess }) {
+  const [form, setForm]         = useState({ name: "", email: "", staffId: "", block: "", password: "" });
+  const [showPw, setShowPw]     = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [blocks, setBlocks]     = useState([]);  // ← live from Firestore
+  const [blocksLoading, setBlocksLoading] = useState(true);
+
   const set = (field, val) => setForm(p => ({ ...p, [field]: val }));
+
+  // Load blocks from Firestore
+  useEffect(() => {
+    const unsub = listenBlocks((data) => {
+      setBlocks(data);
+      setBlocksLoading(false);
+    });
+    return () => unsub();
+  }, []);
 
   const handleAdd = async () => {
     if (!form.name || !form.email || !form.staffId || !form.block || !form.password) {
@@ -287,7 +329,7 @@ function AddPorterModal({ onClose, onSuccess }) {
     }
     setLoading(true); setError("");
     try {
-      const cred = await createUserWithEmailAndPassword(auth, form.email.trim().toLowerCase(), form.password);
+      const cred     = await createUserWithEmailAndPassword(auth, form.email.trim().toLowerCase(), form.password);
       const initials = form.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
       await setDoc(doc(db, "users", cred.user.uid), {
         role: "porter", name: form.name.trim(), initials,
@@ -343,12 +385,23 @@ function AddPorterModal({ onClose, onSuccess }) {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Block *</label>
-              <select value={form.block} onChange={e => set("block", e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700
-                                 bg-white outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all">
-                <option value="">Select…</option>
-                {BLOCKS.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
+              {blocksLoading ? (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-200">
+                  <div className="w-4 h-4 border-2 border-slate-200 border-t-amber-400 rounded-full animate-spin" />
+                  <span className="text-xs text-slate-400">Loading...</span>
+                </div>
+              ) : (
+                <select value={form.block} onChange={e => set("block", e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700
+                                   bg-white outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all">
+                  <option value="">Select…</option>
+                  {blocks.map(b => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
+                  ))}
+                  {/* Always allow All Blocks assignment */}
+                  <option value="All Blocks">All Blocks</option>
+                </select>
+              )}
             </div>
           </div>
 
@@ -395,6 +448,7 @@ function AddPorterModal({ onClose, onSuccess }) {
 }
 
 // ─── DELETE CONFIRM MODAL ──────────────────────────────────────────
+
 function DeleteConfirmModal({ porter, onClose, onConfirm }) {
   const [loading, setLoading] = useState(false);
   const handleDelete = async () => {
@@ -433,7 +487,9 @@ function DeleteConfirmModal({ porter, onClose, onConfirm }) {
   );
 }
 
+
 // ─── DASHBOARD VIEW ────────────────────────────────────────────────
+
 function DashboardView({ setActive, user, complaints, porters }) {
   const open     = complaints.filter(c => c.status === "open" || c.status === "urgent");
   const progress = complaints.filter(c => c.status === "progress");
@@ -575,178 +631,197 @@ function DashboardView({ setActive, user, complaints, porters }) {
   );
 }
 
-// ─── ALL COMPLAINTS VIEW ───────────────────────────────────────────
-function AllComplaintsView({ complaints }) {
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
 
-  const filters = [
-    { key: "all",      label: "All",         count: complaints.length                                       },
-    { key: "open",     label: "Open",        count: complaints.filter(c => c.status === "open").length      },
-    { key: "urgent",   label: "Urgent",      count: complaints.filter(c => c.status === "urgent").length    },
-    { key: "progress", label: "In Progress", count: complaints.filter(c => c.status === "progress").length  },
-    { key: "resolved", label: "Resolved",    count: complaints.filter(c => c.status === "resolved").length  },
-  ];
+// ─── ALL COMPLAINTS VIEW ────────────────────────────────────────────
+
+function AllComplaintsView({ complaints }) {
+  const [search,        setSearch]        = useState("");
+  const [filterStatus,  setFilterStatus]  = useState("all");
+  const [filterPriority,setFilterPriority]= useState("all");
 
   const filtered = complaints.filter(c => {
-    const matchFilter = filter === "all" || c.status === filter;
+    const q = search.toLowerCase();
     const matchSearch =
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      (c.studentName ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.hostel ?? "").toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
+      !q ||
+      (c.title        ?? "").toLowerCase().includes(q) ||
+      (c.studentName  ?? "").toLowerCase().includes(q) ||
+      (c.hostel       ?? "").toLowerCase().includes(q) ||
+      (c.room         ?? "").toLowerCase().includes(q) ||
+      (c.category     ?? "").toLowerCase().includes(q);
+
+    const matchStatus   = filterStatus   === "all" || c.status   === filterStatus;
+    const matchPriority = filterPriority === "all" || c.priority === filterPriority;
+
+    return matchSearch && matchStatus && matchPriority;
   });
 
   return (
-    <div className="w-full flex flex-col">
-
-      {/* Header */}
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-slate-800"
-                style={{ fontFamily: "'Playfair Display', serif" }}>All Complaints</h1>
-            <p className="text-sm text-slate-400 mt-1">System-wide view of every complaint</p>
-          </div>
-          <div className="flex items-center gap-2 bg-white border border-slate-200
-                          rounded-xl px-4 py-2.5 w-full sm:w-64 shadow-sm">
-            <Search className="w-4 h-4 text-slate-300 flex-shrink-0" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-                   placeholder="Search complaints..."
-                   className="bg-transparent text-sm text-slate-600 outline-none w-full placeholder:text-slate-300" />
-          </div>
-        </div>
+    <div className="p-4 md:p-6 w-full space-y-4">
+      <div>
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800"
+            style={{ fontFamily: "'Playfair Display', serif" }}>All Complaints</h1>
+        <p className="text-sm text-slate-400 mt-1">{complaints.length} total · {filtered.length} shown</p>
       </div>
 
-      {/* Filter pills — scrollable strip */}
-      <div className="w-full overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-        <div className="flex gap-2 px-4 md:px-6 pb-3" style={{ width: "max-content", minWidth: "100%" }}>
-          {filters.map(f => (
-            <button key={f.key} onClick={() => setFilter(f.key)}
-                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-full text-sm font-semibold
-                                 border transition-all whitespace-nowrap flex-shrink-0
-                                 ${filter === f.key
-                                   ? "bg-amber-400 text-slate-900 border-amber-400"
-                                   : "bg-white text-slate-500 border-slate-200 hover:border-amber-300"}`}>
-              {f.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
-                ${filter === f.key ? "bg-slate-900/20 text-slate-900" : "bg-slate-100 text-slate-500"}`}>
-                {f.count}
-              </span>
-            </button>
-          ))}
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search complaints…"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm
+                       text-slate-700 outline-none focus:border-amber-400 focus:ring-2
+                       focus:ring-amber-100 transition-all placeholder:text-slate-300 bg-white"
+          />
         </div>
+        <select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700
+                     bg-white outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all">
+          <option value="all">All Statuses</option>
+          <option value="open">Open</option>
+          <option value="urgent">Urgent</option>
+          <option value="progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+        </select>
+        <select
+          value={filterPriority}
+          onChange={e => setFilterPriority(e.target.value)}
+          className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700
+                     bg-white outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all">
+          <option value="all">All Priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
       </div>
 
-      {/* Content */}
-      <div className="px-4 md:px-6 pb-4 md:pb-6">
-        {filtered.length === 0 ? (
-          <div className="flex items-center justify-center h-48">
-            <p className="text-slate-400 text-sm">No complaints found.</p>
-          </div>
-        ) : (
-          <>
-            {/* Desktop table */}
-            <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-100">
-                      {["Title", "Student", "Hostel", "Category", "Priority", "Claimed By", "Status", "Date"].map(h => (
-                        <th key={h} className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 py-3">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map(c => (
-                      <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0">
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-700 max-w-[160px]">
-                          <p className="truncate">{c.title}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-xs font-semibold text-slate-700">{c.studentName}</p>
-                          <p className="text-[10px] text-slate-400">{c.matric}</p>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{c.hostel} · {c.room}</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 text-xs bg-slate-100 rounded-lg px-2 py-1 font-medium text-slate-600 whitespace-nowrap">
-                            {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
-                            {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-600 font-medium whitespace-nowrap">
-                          {c.claimedBy ?? <span className="text-slate-300 italic">Unclaimed</span>}
-                        </td>
-                        <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                        <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.submittedAt}</td>
-                      </tr>
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-white
+                        rounded-2xl border border-slate-100 shadow-sm">
+          <ClipboardList className="w-12 h-12 text-slate-200 mb-3" />
+          <p className="text-slate-400 text-sm font-medium">No complaints match your filters.</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <table className="w-full min-w-[1100px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    {["Title", "Student", "Hostel", "Category", "AI Priority", "Anonymous", "Claimed By", "Status", "Date"].map((h) => (
+                      <th key={h}
+                          className="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 py-3">
+                        {h}
+                      </th>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((c) => (
+                    <tr key={c.id}
+                        className={`border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0
+                                    ${c.anonymous === "YES" ? "bg-purple-50/30" : ""}`}>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700 max-w-[140px]">
+                        <p className="truncate">{c.title}</p>
+                        {c.aiReason && (
+                          <p className="text-[10px] text-blue-500 mt-0.5 truncate">🤖 {c.aiReason}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-xs font-semibold text-slate-700">
+                          {c.anonymous === "YES" ? "🔒 Anonymous" : c.studentName}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {c.anonymous === "YES" ? "Hidden" : c.matric}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                        {c.hostel} · {c.room}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1 text-xs bg-slate-100 rounded-lg
+                                         px-2 py-1 font-medium text-slate-600 whitespace-nowrap">
+                          {CATEGORY_ICONS[c.category] ?? "📌"} {c.category}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <PriorityBadge priority={c.priority} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {c.anonymous === "YES"
+                          ? <AnonymousBadge anonymous={c.anonymous} />
+                          : <span className="text-xs text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 font-medium whitespace-nowrap">
+                        {c.claimedBy ?? <span className="text-slate-300 italic">Unclaimed</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={c.status} />
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
+                        {c.submittedAt}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+          </div>
 
-            {/* Mobile cards — FIXED */}
-            <div className="md:hidden space-y-3">
-              {filtered.map(c => (
-                <div key={c.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 overflow-hidden">
-                  {/* Card header */}
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-xl flex-shrink-0">
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((c) => (
+              <div key={c.id}
+                   className={`bg-white rounded-2xl border shadow-sm p-4 space-y-3
+                               ${c.anonymous === "YES" ? "border-purple-200 bg-purple-50/30" : "border-slate-100"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-lg flex-shrink-0">
                       {CATEGORY_ICONS[c.category] ?? "📌"}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-amber-600">{c.category}</p>
-                      <p className="text-sm font-bold text-slate-700 leading-tight truncate">{c.title}</p>
-                    </div>
-                    <StatusBadge status={c.status} />
-                  </div>
-
-                  {/* Card body — 2 col grid */}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mb-3">
                     <div className="min-w-0">
-                      <p className="text-slate-400 font-medium">Student</p>
-                      <p className="text-slate-700 font-semibold truncate">{c.studentName}</p>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-slate-400 font-medium">Location</p>
-                      <p className="text-slate-700 font-semibold truncate">{c.hostel} · {c.room}</p>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-slate-400 font-medium">Claimed By</p>
-                      <p className={`font-semibold truncate ${c.claimedBy ? "text-slate-700" : "text-slate-300 italic"}`}>
-                        {c.claimedBy ?? "Unclaimed"}
-                      </p>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-slate-400 font-medium">Date</p>
-                      <p className="text-slate-700 font-semibold">{c.submittedAt}</p>
+                      <p className="text-sm font-bold text-slate-800 truncate">{c.title}</p>
+                      <p className="text-xs text-slate-400 truncate">{c.hostel} · {c.room}</p>
                     </div>
                   </div>
-
-                  {/* Card footer */}
-                  <div className="pt-2 border-t border-slate-50">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ${PRIORITY_CONFIG[c.priority]?.badge}`}>
-                      {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)} Priority
-                    </span>
-                  </div>
+                  <StatusBadge status={c.status} />
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <PriorityBadge priority={c.priority} />
+                  {c.anonymous === "YES" && <AnonymousBadge anonymous={c.anonymous} />}
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-medium">
+                    {c.category}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span>{c.anonymous === "YES" ? "Anonymous" : c.studentName}</span>
+                  <span>{c.submittedAt}</span>
+                </div>
+                {c.claimedBy && (
+                  <p className="text-xs text-slate-500 font-medium">
+                    Claimed by: <span className="text-slate-700">{c.claimedBy}</span>
+                  </p>
+                )}
+                {c.aiReason && (
+                  <p className="text-[10px] text-blue-500">🤖 {c.aiReason}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
+
 // ─── MANAGE PORTERS VIEW ───────────────────────────────────────────
+
 function ManagePortersView({ porters, complaints }) {
   const [showAdd, setShowAdd]           = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -855,32 +930,95 @@ function ManagePortersView({ porters, complaints }) {
   );
 }
 
-// ─── HOSTEL BLOCKS VIEW ────────────────────────────────────────────
-function HostelBlocksView({ complaints, porters }) {
-  const [selected, setSelected] = useState(null);
 
-  const blockStats = BLOCKS_LIST.map(block => {
+// ─── HOSTEL BLOCKS VIEW ────────────────────────────────────────────
+
+function HostelBlocksView({ complaints, porters }) {
+  const [blocks,      setBlocks]      = useState([]);
+  const [selected,    setSelected]    = useState(null);
+  const [newBlock,    setNewBlock]    = useState("");
+  const [newRooms,    setNewRooms]    = useState({});
+  const [expanded,    setExpanded]    = useState(null);
+  const [addingBlock, setAddingBlock] = useState(false);
+  const [msg,         setMsg]         = useState(null);
+
+  useEffect(() => {
+    const unsub = listenBlocks(setBlocks);
+    return () => unsub();
+  }, []);
+
+  const showMsg = (type, text) => {
+    setMsg({ type, text });
+    setTimeout(() => setMsg(null), 3000);
+  };
+
+  const handleAddBlock = async () => {
+    const name = newBlock.trim();
+    if (!name) return;
+    const exists = blocks.some(b => b.name.toLowerCase() === name.toLowerCase());
+    if (exists) { showMsg("error", `"${name}" already exists.`); return; }
+    setAddingBlock(true);
+    try {
+      await addBlock(name);
+      setNewBlock("");
+      showMsg("success", `"${name}" added.`);
+    } catch { showMsg("error", "Failed to add block."); }
+    setAddingBlock(false);
+  };
+
+  const handleDeleteBlock = async (blockId, blockName) => {
+    if (!window.confirm(`Delete "${blockName}" and all its rooms?`)) return;
+    try {
+      await deleteBlock(blockId);
+      if (expanded === blockId) setExpanded(null);
+      if (selected === blockName) setSelected(null);
+      showMsg("success", `"${blockName}" deleted.`);
+    } catch { showMsg("error", "Failed to delete block."); }
+  };
+
+  const handleAddRoom = async (blockId, blockName) => {
+    const roomName = (newRooms[blockId] ?? "").trim();
+    if (!roomName) return;
+    const block = blocks.find(b => b.id === blockId);
+    if (block?.rooms?.some(r => r.toLowerCase() === roomName.toLowerCase())) {
+      showMsg("error", `Room "${roomName}" already exists in ${blockName}.`); return;
+    }
+    try {
+      await addRoom(blockId, roomName);
+      setNewRooms(p => ({ ...p, [blockId]: "" }));
+      showMsg("success", `Room "${roomName}" added.`);
+    } catch { showMsg("error", "Failed to add room."); }
+  };
+
+  const handleRemoveRoom = async (blockId, blockName, roomName) => {
+    if (!window.confirm(`Remove "${roomName}" from ${blockName}?`)) return;
+    try {
+      await removeRoom(blockId, roomName);
+      showMsg("success", `"${roomName}" removed.`);
+    } catch { showMsg("error", "Failed to remove room."); }
+  };
+
+  // ── Block detail view ───────────────────────────────────────────
+  if (selected) {
+    const block           = blocks.find(b => b.name === selected);
     const blockComplaints = complaints.filter(c =>
-      (c.hostel ?? "").toLowerCase() === block.toLowerCase()
+      (c.hostel ?? "").toLowerCase() === selected.toLowerCase()
     );
     const open     = blockComplaints.filter(c => c.status === "open" || c.status === "urgent").length;
     const progress = blockComplaints.filter(c => c.status === "progress").length;
     const resolved = blockComplaints.filter(c => c.status === "resolved").length;
     const total    = blockComplaints.length;
     const rate     = total > 0 ? Math.round((resolved / total) * 100) : 0;
+    const health   = open === 0 ? "great" : open <= 2 ? "good" : open <= 5 ? "fair" : "poor";
+    const cfg      = HEALTH_CONFIG[health];
+
     const assignedPorters = porters.filter(p =>
-      (p.block ?? "").toLowerCase() === block.toLowerCase() ||
+      (p.block ?? "").toLowerCase() === selected.toLowerCase() ||
       (p.block ?? "").toLowerCase() === "all blocks"
     );
-    const health = open === 0 ? "great" : open <= 2 ? "good" : open <= 5 ? "fair" : "poor";
-    return { block, total, open, progress, resolved, rate, assignedPorters, health, blockComplaints };
-  });
 
-  if (selected) {
-    const s   = blockStats.find(b => b.block === selected);
-    const cfg = HEALTH_CONFIG[s.health];
     const categories = {};
-    s.blockComplaints.forEach(c => {
+    blockComplaints.forEach(c => {
       categories[c.category] = (categories[c.category] ?? 0) + 1;
     });
 
@@ -896,8 +1034,10 @@ function HostelBlocksView({ complaints, porters }) {
             <div className="flex items-start justify-between mb-3 gap-3">
               <div className="min-w-0">
                 <h1 className="text-2xl font-bold text-slate-800"
-                    style={{ fontFamily: "'Playfair Display', serif" }}>{s.block}</h1>
-                <p className="text-sm text-slate-500 mt-1">Crawford University Hostel</p>
+                    style={{ fontFamily: "'Playfair Display', serif" }}>{selected}</h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  {block?.rooms?.length ?? 0} room{(block?.rooms?.length ?? 0) !== 1 ? "s" : ""} registered
+                </p>
               </div>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full flex-shrink-0
                                text-xs font-bold ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
@@ -907,10 +1047,10 @@ function HostelBlocksView({ complaints, porters }) {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
               {[
-                { label: "Total",       value: s.total,    color: "text-slate-700"   },
-                { label: "Open",        value: s.open,     color: "text-amber-600"   },
-                { label: "In Progress", value: s.progress, color: "text-blue-600"    },
-                { label: "Resolved",    value: s.resolved, color: "text-emerald-600" },
+                { label: "Total",       value: total,    color: "text-slate-700"   },
+                { label: "Open",        value: open,     color: "text-amber-600"   },
+                { label: "In Progress", value: progress, color: "text-blue-600"    },
+                { label: "Resolved",    value: resolved, color: "text-emerald-600" },
               ].map(stat => (
                 <div key={stat.label} className="bg-white rounded-xl p-3 text-center shadow-sm">
                   <p className={`text-2xl font-bold ${stat.color}`}
@@ -924,25 +1064,44 @@ function HostelBlocksView({ complaints, porters }) {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold text-slate-700">Resolution Rate</p>
-              <span className="text-lg font-bold text-emerald-600"
-                    style={{ fontFamily: "'Playfair Display', serif" }}>{s.rate}%</span>
+              <span className="text-lg font-bold text-emerald-600">{rate}%</span>
             </div>
             <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${s.rate}%` }} />
+              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${rate}%` }} />
             </div>
-            <p className="text-xs text-slate-400 mt-2">{s.resolved} of {s.total} complaints resolved</p>
+            <p className="text-xs text-slate-400 mt-2">{resolved} of {total} complaints resolved</p>
           </div>
+
+          {block && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <p className="text-sm font-bold text-slate-700 mb-3">
+                Rooms ({block.rooms?.length ?? 0})
+              </p>
+              {!block.rooms || block.rooms.length === 0 ? (
+                <p className="text-sm text-slate-400 italic">No rooms added yet.</p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {[...block.rooms].sort().map(room => (
+                    <div key={room}
+                         className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-center">
+                      <p className="text-xs font-semibold text-slate-700">{room}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">
               <UserCheck className="w-4 h-4 text-amber-500" />
               <p className="text-sm font-bold text-slate-700">Assigned Porters</p>
             </div>
-            {s.assignedPorters.length === 0 ? (
+            {assignedPorters.length === 0 ? (
               <p className="text-sm text-slate-400 italic">No porters assigned to this block.</p>
             ) : (
               <div className="space-y-3">
-                {s.assignedPorters.map(p => (
+                {assignedPorters.map(p => (
                   <div key={p.uid} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                     <div className="w-9 h-9 rounded-full bg-emerald-700 flex items-center
                                     justify-center text-xs font-bold text-white flex-shrink-0">
@@ -975,7 +1134,7 @@ function HostelBlocksView({ complaints, porters }) {
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-400 rounded-full"
-                           style={{ width: `${Math.round((count / s.total) * 100)}%` }} />
+                           style={{ width: `${Math.round((count / total) * 100)}%` }} />
                     </div>
                   </div>
                 ))}
@@ -983,14 +1142,14 @@ function HostelBlocksView({ complaints, porters }) {
             </div>
           )}
 
-          {s.blockComplaints.length > 0 && (
+          {blockComplaints.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
                 <ClipboardList className="w-4 h-4 text-amber-500" />
                 <p className="text-sm font-bold text-slate-700">Recent Complaints</p>
               </div>
               <div className="divide-y divide-slate-50">
-                {s.blockComplaints.slice(0, 5).map(c => (
+                {blockComplaints.slice(0, 5).map(c => (
                   <div key={c.id} className="flex items-center gap-3 px-5 py-3.5">
                     <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-base flex-shrink-0">
                       {CATEGORY_ICONS[c.category] ?? "📌"}
@@ -1010,22 +1169,35 @@ function HostelBlocksView({ complaints, porters }) {
     );
   }
 
+  // ── Block list view ─────────────────────────────────────────────
   return (
     <div className="p-4 md:p-6 w-full">
       <div className="mb-5 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>Hostel Blocks</h1>
         <p className="text-sm text-slate-400 mt-1">
-          Overview of all {BLOCKS_LIST.length} blocks · tap a block for details
+          Manage blocks, rooms and view complaint data per block
         </p>
       </div>
 
+      {msg && (
+        <div className={`mb-5 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold
+          ${msg.type === "success"
+            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+            : "bg-red-50 text-red-700 border border-red-200"}`}>
+          {msg.type === "success"
+            ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            : <AlertCircle  className="w-4 h-4 flex-shrink-0" />}
+          {msg.text}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Total Blocks",   value: BLOCKS_LIST.length,                                                        icon: Building2,    bg: "bg-slate-100",  color: "text-slate-700"   },
-          { label: "Active Issues",  value: complaints.filter(c => c.status !== "resolved").length,                    icon: AlertCircle,  bg: "bg-amber-50",   color: "text-amber-600"   },
-          { label: "Resolved",       value: complaints.filter(c => c.status === "resolved").length,                    icon: CheckCircle2, bg: "bg-emerald-50", color: "text-emerald-600" },
-          { label: "Blocks w/ Load", value: blockStats.filter(b => b.health === "fair" || b.health === "poor").length, icon: Flame,        bg: "bg-red-50",     color: "text-red-600"     },
+          { label: "Total Blocks",  value: blocks.length,                                               icon: Building2,    bg: "bg-slate-100",  color: "text-slate-700"   },
+          { label: "Active Issues", value: complaints.filter(c => c.status !== "resolved").length,      icon: AlertCircle,  bg: "bg-amber-50",   color: "text-amber-600"   },
+          { label: "Resolved",      value: complaints.filter(c => c.status === "resolved").length,      icon: CheckCircle2, bg: "bg-emerald-50", color: "text-emerald-600" },
+          { label: "Total Rooms",   value: blocks.reduce((acc, b) => acc + (b.rooms?.length ?? 0), 0), icon: Building2,    bg: "bg-blue-50",    color: "text-blue-600"    },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.bg}`}>
@@ -1040,67 +1212,169 @@ function HostelBlocksView({ complaints, porters }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {blockStats.map(s => {
-          const cfg = HEALTH_CONFIG[s.health];
-          return (
-            <div key={s.block} onClick={() => setSelected(s.block)}
-                 className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5
-                            hover:shadow-md hover:border-amber-200 cursor-pointer transition-all group">
-              <div className="flex items-start justify-between mb-4 gap-2">
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-slate-800 group-hover:text-amber-600 transition-colors truncate"
-                      style={{ fontFamily: "'Playfair Display', serif" }}>{s.block}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {s.assignedPorters.length} porter{s.assignedPorters.length !== 1 ? "s" : ""} assigned
-                  </p>
-                </div>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full flex-shrink-0
-                                 text-[10px] font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                  {cfg.label}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {[
-                  { label: "Open",     value: s.open,     color: s.open > 0 ? "text-amber-600" : "text-slate-400"    },
-                  { label: "Active",   value: s.progress, color: s.progress > 0 ? "text-blue-600" : "text-slate-400" },
-                  { label: "Resolved", value: s.resolved, color: "text-emerald-600"                                   },
-                ].map(stat => (
-                  <div key={stat.label} className="bg-slate-50 rounded-xl p-2.5 text-center">
-                    <p className={`text-lg font-bold ${stat.color}`}
-                       style={{ fontFamily: "'Playfair Display', serif" }}>{stat.value}</p>
-                    <p className="text-[10px] text-slate-400">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">Resolution rate</span>
-                  <span className="font-bold text-emerald-600">{s.rate}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${s.rate}%` }} />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
-                <span className="text-xs text-slate-400">{s.total} total complaint{s.total !== 1 ? "s" : ""}</span>
-                <span className="text-xs font-semibold text-amber-600 group-hover:underline flex items-center gap-1 flex-shrink-0">
-                  View details <ChevronRight className="w-3 h-3" />
-                </span>
-              </div>
-            </div>
-          );
-        })}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+        <p className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-amber-500" />
+          Add New Block
+        </p>
+        <div className="flex gap-3">
+          <input
+            value={newBlock}
+            onChange={e => setNewBlock(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleAddBlock()}
+            placeholder="e.g. Ogun Block, Kwara Hall…"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm
+                       text-slate-700 outline-none focus:border-amber-400
+                       focus:ring-2 focus:ring-amber-100 transition-all placeholder:text-slate-300"
+          />
+          <button
+            onClick={handleAddBlock}
+            disabled={addingBlock || !newBlock.trim()}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-400
+                       text-slate-900 text-sm font-bold hover:bg-amber-500 transition-colors
+                       disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+            {addingBlock
+              ? <div className="w-4 h-4 border-2 border-slate-900/20 border-t-slate-900 rounded-full animate-spin" />
+              : <><Plus className="w-4 h-4" /> Add Block</>}
+          </button>
+        </div>
       </div>
+
+      {blocks.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white
+                        rounded-2xl border border-slate-100 shadow-sm">
+          <Building2 className="w-12 h-12 text-slate-200 mb-3" />
+          <p className="text-slate-400 text-sm font-medium">No blocks added yet.</p>
+          <p className="text-slate-300 text-xs mt-1">Add your first block above.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {blocks.map(block => {
+            const blockComplaints = complaints.filter(c =>
+              (c.hostel ?? "").toLowerCase() === block.name.toLowerCase()
+            );
+            const open     = blockComplaints.filter(c => c.status === "open" || c.status === "urgent").length;
+            const resolved = blockComplaints.filter(c => c.status === "resolved").length;
+            const total    = blockComplaints.length;
+            const rate     = total > 0 ? Math.round((resolved / total) * 100) : 0;
+            const health   = open === 0 ? "great" : open <= 2 ? "good" : open <= 5 ? "fair" : "poor";
+            const cfg      = HEALTH_CONFIG[health];
+
+            return (
+              <div key={block.id}
+                   className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4">
+                  <button
+                    onClick={() => setExpanded(expanded === block.id ? null : block.id)}
+                    className="flex items-center gap-3 flex-1 text-left min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-800 truncate">{block.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {block.rooms?.length ?? 0} room{(block.rooms?.length ?? 0) !== 1 ? "s" : ""} ·{" "}
+                        {total} complaint{total !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                                     text-[10px] font-bold border flex-shrink-0
+                                     ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                      {cfg.label}
+                    </span>
+                    <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0
+                      ${expanded === block.id ? "rotate-90" : ""}`} />
+                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => setSelected(block.name)}
+                      className="text-xs font-semibold text-amber-600 hover:underline whitespace-nowrap">
+                      Details ↗
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBlock(block.id, block.name)}
+                      className="w-8 h-8 rounded-xl bg-red-50 border border-red-100 flex items-center
+                                 justify-center hover:bg-red-100 transition-colors group">
+                      <Trash2 className="w-3.5 h-3.5 text-red-400 group-hover:text-red-600" />
+                    </button>
+                  </div>
+                </div>
+
+                {total > 0 && (
+                  <div className="px-5 pb-3">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-400">Resolution rate</span>
+                      <span className="font-bold text-emerald-600">{rate}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${rate}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                {expanded === block.id && (
+                  <div className="border-t border-slate-100 px-5 py-4 space-y-4 bg-slate-50/50">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Manage Rooms
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        value={newRooms[block.id] ?? ""}
+                        onChange={e => setNewRooms(p => ({ ...p, [block.id]: e.target.value }))}
+                        onKeyDown={e => e.key === "Enter" && handleAddRoom(block.id, block.name)}
+                        placeholder="e.g. Room 101, Room A1…"
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm
+                                   text-slate-700 outline-none focus:border-amber-400
+                                   focus:ring-2 focus:ring-amber-100 transition-all placeholder:text-slate-300 bg-white"
+                      />
+                      <button
+                        onClick={() => handleAddRoom(block.id, block.name)}
+                        disabled={!(newRooms[block.id] ?? "").trim()}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800
+                                   text-white text-sm font-bold hover:bg-slate-700 transition-colors
+                                   disabled:opacity-40 flex-shrink-0">
+                        <Plus className="w-3.5 h-3.5" /> Room
+                      </button>
+                    </div>
+                    {!block.rooms || block.rooms.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic text-center py-4">
+                        No rooms yet. Add the first room above.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {[...block.rooms].sort().map(room => (
+                          <div key={room}
+                               className="flex items-center justify-between bg-white
+                                          border border-slate-200 rounded-xl px-3 py-2 group">
+                            <span className="text-xs font-semibold text-slate-700 truncate mr-1">
+                              {room}
+                            </span>
+                            <button
+                              onClick={() => handleRemoveRoom(block.id, block.name, room)}
+                              className="w-5 h-5 rounded-full bg-red-100 flex items-center
+                                         justify-center hover:bg-red-200 transition-colors
+                                         flex-shrink-0 opacity-0 group-hover:opacity-100">
+                              <X className="w-3 h-3 text-red-500" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
+
 // ─── ANALYTICS VIEW ────────────────────────────────────────────────
+
 function AnalyticsView({ complaints, porters }) {
   const resolved  = complaints.filter(c => c.status === "resolved");
   const open      = complaints.filter(c => c.status === "open" || c.status === "urgent");
@@ -1358,7 +1632,9 @@ function AnalyticsView({ complaints, porters }) {
   );
 }
 
+
 // ─── APP ROOT ──────────────────────────────────────────────────────
+
 export default function AdminApp({ user, onLogout }) {
   const [active,      setActive]      = useState("dashboard");
   const [showLogout,  setShowLogout]  = useState(false);
@@ -1385,7 +1661,6 @@ export default function AdminApp({ user, onLogout }) {
         open={sidebarOpen} onClose={() => setSidebarOpen(false)}
       />
 
-      {/* KEY FIX: min-w-0 + overflow-hidden stops children expanding page width */}
       <div className="ml-0 md:ml-64 flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
         <Topbar
           pageTitle={PAGE_TITLES[active] ?? active}
