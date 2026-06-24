@@ -15,7 +15,7 @@ import {
   LayoutDashboard, ClipboardList, CheckCircle2,
   Bell, User, Building2, ChevronRight, LogOut,
   AlertCircle, Clock, Wrench, MessageSquare, BarChart2,
-  Hand, BellRing, Info, PlusCircle, Trash2, X, Plus,
+  Hand, BellRing, Info, PlusCircle, X,
 } from "lucide-react";
 
 const PAGE_TITLES = {
@@ -23,7 +23,7 @@ const PAGE_TITLES = {
   open:      "Open Complaints",
   mine:      "My Tasks",
   resolved:  "Resolved",
-  block:     "Manage Blocks & Rooms",
+  block:     "Block Overview",
   notifs:    "Notifications",
   messages:  "Messages",
   profile:   "My Profile",
@@ -37,14 +37,28 @@ const STATUS_CONFIG = {
 };
 
 const PRIORITY_CONFIG = {
+  HIGH:   { label: "High",   badge: "bg-red-50 text-red-600 ring-red-200"             },
+  MEDIUM: { label: "Medium", badge: "bg-amber-50 text-amber-600 ring-amber-200"       },
+  LOW:    { label: "Low",    badge: "bg-emerald-50 text-emerald-600 ring-emerald-200" },
   high:   { label: "High",   badge: "bg-red-50 text-red-600 ring-red-200"             },
   medium: { label: "Medium", badge: "bg-amber-50 text-amber-600 ring-amber-200"       },
   low:    { label: "Low",    badge: "bg-emerald-50 text-emerald-600 ring-emerald-200" },
 };
 
 const CATEGORY_ICONS = {
-  Plumbing: "🔧", Electrical: "💡", Furniture: "🪑",
-  Security: "🔒", Pest: "🐛",       Cleaning:  "🧹", Other: "📌",
+  Plumbing:    "🔧",
+  Electricity: "💡",
+  Electrical:  "💡",
+  Furniture:   "🪑",
+  Security:    "🔒",
+  Pest:        "🐛",
+  Cleaning:    "🧹",
+  Maintenance: "🔨",
+  Internet:    "📶",
+  Sanitation:  "🧼",
+  Staff:       "👤",
+  Noise:       "🔊",
+  Other:       "📌",
 };
 
 const NOTIF_CONFIG = {
@@ -54,6 +68,43 @@ const NOTIF_CONFIG = {
   resolved:  { icon: CheckCircle2,  bg: "bg-emerald-50", iconColor: "text-emerald-500", border: "border-emerald-100" },
 };
 
+// ─── HELPER — hide student identity if anonymous ────────────────────
+function displayName(c) {
+  return c.anonymous === "YES" ? "🔒 Anonymous" : (c.studentName ?? "Unknown");
+}
+
+function displayInitials(c) {
+  if (c.anonymous === "YES") return "🔒";
+  const name = c.studentName ?? "?";
+  return name.split(" ").map(w => w[0]).join("").slice(0, 2);
+}
+
+// ─── TOAST — success message component ─────────────────────────────
+function Toast({ message, onDismiss }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 3500);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  return (
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none
+                    flex items-center justify-center px-4 w-full max-w-sm">
+      <div className="flex items-center gap-3 bg-emerald-700 text-white
+                      px-5 py-3.5 rounded-2xl shadow-2xl pointer-events-auto
+                      animate-in slide-in-from-top-2 duration-300">
+        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+          <CheckCircle2 className="w-4 h-4 text-white" />
+        </div>
+        <p className="text-sm font-semibold">{message}</p>
+        <button onClick={onDismiss}
+                className="ml-2 text-white/60 hover:text-white transition-colors flex-shrink-0">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── REUSABLE ──────────────────────────────────────────────────────
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.open;
@@ -62,6 +113,18 @@ function StatusBadge({ status }) {
                       text-xs font-semibold ring-1 ${cfg.badge}`}>
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
       {cfg.label}
+    </span>
+  );
+}
+
+function PriorityBadge({ priority }) {
+  const cfg = PRIORITY_CONFIG[priority] ?? PRIORITY_CONFIG.MEDIUM;
+  const icons = { HIGH: "🔴", MEDIUM: "🟡", LOW: "🟢", high: "🔴", medium: "🟡", low: "🟢" };
+  if (!priority) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+                      text-[10px] font-bold ring-1 ${cfg.badge}`}>
+      {icons[priority] ?? "🟡"} {cfg.label}
     </span>
   );
 }
@@ -97,7 +160,7 @@ function Sidebar({ active, setActive, user, onLogout, openCount, myCount, unread
     {
       label: "Hostel",
       items: [
-        { id: "block", icon: Building2, label: "Block Overview" },
+        { id: "block",    icon: Building2,     label: "Block Overview" },
         { id: "notifs",   icon: Bell,          label: "Notifications", badge: unreadCount > 0 ? unreadCount : null },
         { id: "messages", icon: MessageSquare, label: "Messages"       },
       ],
@@ -246,7 +309,7 @@ function Topbar({ pageTitle, user, onLogout, onNavigate, unreadCount }) {
   );
 }
 
-// ─── BLOCK OVERVIEW — Porter read-only view ────────────────────────
+// ─── BLOCK OVERVIEW — Porter read-only ─────────────────────────────
 function BlockOverviewView() {
   const [blocks, setBlocks] = useState([]);
 
@@ -260,9 +323,7 @@ function BlockOverviewView() {
       <div className="mb-6">
         <h1 className="text-xl md:text-2xl font-bold text-slate-800"
             style={{ fontFamily: "'Playfair Display', serif" }}>Block Overview</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          View all hostel blocks and their rooms
-        </p>
+        <p className="text-sm text-slate-400 mt-1">View all hostel blocks and their rooms</p>
       </div>
 
       {blocks.length === 0 ? (
@@ -308,7 +369,7 @@ function BlockOverviewView() {
       <div className="mt-6 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-emerald-700 flex-shrink-0 mt-0.5" />
         <p className="text-sm text-emerald-700">
-          Block and room management is handled by the Head Porter. Contact them to add or remove blocks and rooms.
+          Block and room management is handled by the Head Porter.
         </p>
       </div>
     </div>
@@ -530,13 +591,11 @@ function NotificationsView({ user }) {
     await markNotificationRead(id);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[70vh]">
-        <div className="w-8 h-8 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center h-[70vh]">
+      <div className="w-8 h-8 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-6 w-full max-w-2xl mx-auto">
@@ -603,15 +662,6 @@ function NotificationsView({ user }) {
           })}
         </div>
       )}
-
-      {notifications.length > 0 && (
-        <div className="mt-5 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3">
-          <Info className="w-5 h-5 text-emerald-700 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-emerald-700">
-            Tap a notification to mark it as read.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -638,7 +688,9 @@ function DashboardView({ setActive, user, complaints }) {
   const open     = complaints.filter(c => c.status === "open" || c.status === "urgent");
   const mine     = complaints.filter(c => c.claimedById === user.uid);
   const resolved = complaints.filter(c => c.status === "resolved" && c.claimedById === user.uid);
-  const urgent   = complaints.filter(c => c.priority === "high" && c.status !== "resolved");
+  const urgent   = complaints.filter(c =>
+    (c.priority === "HIGH" || c.priority === "high") && c.status !== "resolved"
+  );
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 w-full">
@@ -668,10 +720,10 @@ function DashboardView({ setActive, user, complaints }) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-        <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-blue-600"    label="Open Complaints"  value={open.length}                                     sub="Waiting to be claimed" subColor="text-blue-500"    />
-        <StatCard icon={Wrench}        iconBg="bg-amber-50"   iconColor="text-amber-500"   label="My Active Tasks"  value={mine.filter(c => c.status !== "resolved").length} sub="Claimed by you"        subColor="text-amber-500"   />
-        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="I've Resolved"    value={resolved.length}                                 sub="Total resolved by you" subColor="text-emerald-500" />
-        <StatCard icon={AlertCircle}   iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"           value={urgent.length}                                   sub="High priority open"    subColor="text-red-500"     />
+        <StatCard icon={ClipboardList} iconBg="bg-blue-50"    iconColor="text-blue-600"    label="Open Complaints" value={open.length}                                     sub="Waiting to be claimed" subColor="text-blue-500"    />
+        <StatCard icon={Wrench}        iconBg="bg-amber-50"   iconColor="text-amber-500"   label="My Active Tasks" value={mine.filter(c => c.status !== "resolved").length} sub="Claimed by you"        subColor="text-amber-500"   />
+        <StatCard icon={CheckCircle2}  iconBg="bg-emerald-50" iconColor="text-emerald-500" label="I've Resolved"   value={resolved.length}                                 sub="Total resolved by you" subColor="text-emerald-500" />
+        <StatCard icon={AlertCircle}   iconBg="bg-red-50"     iconColor="text-red-500"     label="Urgent"          value={urgent.length}                                   sub="High priority open"    subColor="text-red-500"     />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
@@ -702,7 +754,7 @@ function DashboardView({ setActive, user, complaints }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-700 truncate">{c.title}</p>
-                    <span className="text-xs text-slate-400 truncate">{c.hostel} · {c.room}</span>
+                    <span className="text-xs text-slate-400">{c.hostel} · {c.room}</span>
                   </div>
                   <StatusBadge status={c.status} />
                 </div>
@@ -754,7 +806,7 @@ function DashboardView({ setActive, user, complaints }) {
 }
 
 // ─── COMPLAINT DETAIL ──────────────────────────────────────────────
-function ComplaintDetail({ complaint, onBack, user }) {
+function ComplaintDetail({ complaint, onBack, user, onClaimSuccess }) {
   const [status,   setStatus]   = useState(complaint.status);
   const [notes,    setNotes]    = useState(complaint.resolutionNotes ?? "");
   const [saving,   setSaving]   = useState(false);
@@ -764,11 +816,17 @@ function ComplaintDetail({ complaint, onBack, user }) {
   const isMine     = complaint.claimedById === user.uid;
   const isClaimed  = !!complaint.claimedBy;
   const isResolved = complaint.status === "resolved";
+  const isAnon     = complaint.anonymous === "YES";
 
   const handleClaim = async () => {
     setClaiming(true);
-    try { await claimComplaint(complaint.id, user.name, user.uid); }
-    catch (err) { console.error(err); }
+    try {
+      await claimComplaint(complaint.id, user.name, user.uid);
+      // Show success toast in parent
+      onClaimSuccess(complaint.title);
+    } catch (err) {
+      console.error(err);
+    }
     setClaiming(false);
   };
 
@@ -793,6 +851,22 @@ function ComplaintDetail({ complaint, onBack, user }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="col-span-1 md:col-span-2 space-y-5">
+
+          {/* Anonymous warning banner */}
+          {isAnon && (
+            <div className="flex items-start gap-3 bg-purple-50 border border-purple-200 rounded-2xl px-5 py-4">
+              <span className="text-lg flex-shrink-0">🔒</span>
+              <div>
+                <p className="text-sm font-bold text-purple-800">Anonymous Complaint</p>
+                <p className="text-xs text-purple-600 mt-0.5">
+                  This complaint was flagged sensitive by AI. The student's identity is protected
+                  and must not be investigated or revealed.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Main complaint card */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
             <div className="flex items-start justify-between mb-4 gap-3">
               <div className="min-w-0">
@@ -807,15 +881,35 @@ function ComplaintDetail({ complaint, onBack, user }) {
               {[
                 { label: "Category",  value: `${CATEGORY_ICONS[c.category] ?? "📌"} ${c.category}` },
                 { label: "Location",  value: `${c.hostel} · ${c.room}`                              },
-                { label: "Student",   value: c.studentName                                           },
+                // ── ANONYMOUS PROTECTION: hide student name from porter ──
+                { label: "Student",   value: displayName(c)                                          },
                 { label: "Submitted", value: c.submittedAt                                           },
               ].map(row => (
                 <div key={row.label}>
                   <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{row.label}</p>
-                  <p className="text-sm font-semibold text-slate-700">{row.value}</p>
+                  <p className={`text-sm font-semibold ${
+                    row.label === "Student" && isAnon ? "text-purple-600" : "text-slate-700"
+                  }`}>{row.value}</p>
                 </div>
               ))}
             </div>
+
+            {/* AI info */}
+            {c.aiAnalyzed && (
+              <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-slate-400 font-semibold">🤖 AI:</span>
+                <PriorityBadge priority={c.priority} />
+                {isAnon && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+                                   text-[10px] font-bold bg-purple-50 text-purple-700 ring-1 ring-purple-200">
+                    🔒 Anonymous
+                  </span>
+                )}
+                {c.aiReason && (
+                  <span className="text-[10px] text-slate-400 italic">{c.aiReason}</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Photo evidence */}
@@ -833,26 +927,27 @@ function ComplaintDetail({ complaint, onBack, user }) {
             </div>
           )}
 
+          {/* Claim / claimed banner */}
           {!isResolved && (
             <div className={`rounded-2xl p-5 flex items-center justify-between gap-3
-              ${isMine ? "bg-emerald-50 border border-emerald-200"
-                : isClaimed ? "bg-slate-50 border border-slate-200"
-                : "bg-blue-50 border border-blue-200"}`}>
+              ${isMine    ? "bg-emerald-50 border border-emerald-200"
+              : isClaimed ? "bg-slate-50 border border-slate-200"
+                          : "bg-blue-50 border border-blue-200"}`}>
               <div className="flex items-center gap-3">
                 <Hand className={`w-5 h-5 flex-shrink-0
                   ${isMine ? "text-emerald-600" : isClaimed ? "text-slate-400" : "text-blue-600"}`} />
                 <div>
                   <p className={`text-sm font-bold
                     ${isMine ? "text-emerald-700" : isClaimed ? "text-slate-600" : "text-blue-700"}`}>
-                    {isMine ? "You claimed this complaint"
-                      : isClaimed ? `Claimed by ${c.claimedBy}`
-                      : "This complaint is unclaimed"}
+                    {isMine    ? "You claimed this complaint"
+                    : isClaimed ? `Claimed by ${c.claimedBy}`
+                               : "This complaint is unclaimed"}
                   </p>
                   <p className={`text-xs mt-0.5
                     ${isMine ? "text-emerald-600" : isClaimed ? "text-slate-400" : "text-blue-600"}`}>
-                    {isMine ? "Update its status below when done"
-                      : isClaimed ? "Another porter is handling this"
-                      : "Claim it to start working on it"}
+                    {isMine    ? "Update its status below when done"
+                    : isClaimed ? "Another porter is handling this"
+                               : "Claim it to start working on it"}
                   </p>
                 </div>
               </div>
@@ -869,6 +964,7 @@ function ComplaintDetail({ complaint, onBack, user }) {
             </div>
           )}
 
+          {/* Update status panel */}
           {isMine && !isResolved && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6 space-y-4">
               <div className="flex items-center gap-2">
@@ -923,6 +1019,7 @@ function ComplaintDetail({ complaint, onBack, user }) {
             </div>
           )}
 
+          {/* Resolved banner */}
           {isResolved && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-4">
               <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" />
@@ -935,6 +1032,7 @@ function ComplaintDetail({ complaint, onBack, user }) {
           )}
         </div>
 
+        {/* Timeline */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 h-fit">
           <div className="flex items-center gap-2 mb-5">
             <Clock className="w-4 h-4 text-emerald-700" />
@@ -944,10 +1042,11 @@ function ComplaintDetail({ complaint, onBack, user }) {
             <div className="absolute left-3.5 top-0 bottom-0 w-0.5 bg-slate-100" />
             <div className="space-y-6">
               {[
-                { event: "Complaint submitted", done: true                                               },
-                { event: "Claimed by porter",   done: !!c.claimedBy                                     },
-                { event: "Work in progress",    done: c.status === "progress" || c.status === "resolved" },
-                { event: "Resolved & closed",   done: c.status === "resolved"                            },
+                { event: "Complaint submitted",  done: true                                               },
+                { event: "AI analysis complete", done: !!c.aiAnalyzed                                     },
+                { event: "Claimed by porter",    done: !!c.claimedBy                                      },
+                { event: "Work in progress",     done: c.status === "progress" || c.status === "resolved" },
+                { event: "Resolved & closed",    done: c.status === "resolved"                            },
               ].map((t, i) => (
                 <div key={i} className="flex items-start gap-4 relative">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center
@@ -973,19 +1072,27 @@ function ComplaintDetail({ complaint, onBack, user }) {
 }
 
 // ─── COMPLAINT LIST VIEW ───────────────────────────────────────────
-function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user }) {
+function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user, onClaimSuccess }) {
   const [selected, setSelected] = useState(null);
   const [search,   setSearch]   = useState("");
 
   const filtered = complaints.filter(c =>
     c.title.toLowerCase().includes(search.toLowerCase()) ||
-    (c.studentName ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    // ── don't search by student name if anonymous ──
+    (c.anonymous !== "YES" && (c.studentName ?? "").toLowerCase().includes(search.toLowerCase())) ||
     (c.hostel ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   if (selected) {
     const live = complaints.find(c => c.id === selected.id) ?? selected;
-    return <ComplaintDetail complaint={live} onBack={() => setSelected(null)} user={user} />;
+    return (
+      <ComplaintDetail
+        complaint={live}
+        onBack={() => setSelected(null)}
+        user={user}
+        onClaimSuccess={onClaimSuccess}
+      />
+    );
   }
 
   return (
@@ -1021,10 +1128,15 @@ function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user 
         {filtered.map((c) => {
           const isMine    = c.claimedById === user.uid;
           const isClaimed = !!c.claimedBy && !isMine;
+          const isAnon    = c.anonymous === "YES";
+
           return (
             <div key={c.id} onClick={() => setSelected(c)}
-                 className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5
-                            hover:shadow-md hover:border-emerald-200 cursor-pointer transition-all group">
+                 className={`bg-white rounded-2xl border shadow-sm p-5
+                             hover:shadow-md cursor-pointer transition-all group
+                             ${isAnon
+                               ? "border-purple-100 hover:border-purple-200"
+                               : "border-slate-100 hover:border-emerald-200"}`}>
               <div className="flex items-start justify-between mb-3 gap-2">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-xl flex-shrink-0">
@@ -1035,24 +1147,36 @@ function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user 
                     <p className="text-sm font-bold text-slate-700 leading-tight truncate">{c.title}</p>
                   </div>
                 </div>
-                <StatusBadge status={c.status} />
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {isAnon && (
+                    <span title="Anonymous complaint"
+                          className="w-6 h-6 rounded-full bg-purple-50 flex items-center justify-center text-sm">
+                      🔒
+                    </span>
+                  )}
+                  <StatusBadge status={c.status} />
+                </div>
               </div>
+
               <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-3">{c.desc}</p>
+
+              {/* Student row — ANONYMOUS PROTECTED */}
               <div className="flex items-center gap-2.5 mb-3 bg-slate-50 rounded-xl px-3 py-2.5">
-                <div className="w-7 h-7 rounded-full bg-emerald-700 flex items-center
-                                justify-center text-[10px] font-bold text-white flex-shrink-0">
-                  {(c.studentName ?? "?").split(" ").map(w => w[0]).join("").slice(0, 2)}
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center
+                                text-[10px] font-bold flex-shrink-0
+                                ${isAnon ? "bg-purple-100 text-purple-600" : "bg-emerald-700 text-white"}`}>
+                  {displayInitials(c)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-700 truncate">{c.studentName}</p>
+                  <p className={`text-xs font-semibold truncate
+                    ${isAnon ? "text-purple-600" : "text-slate-700"}`}>
+                    {displayName(c)}
+                  </p>
                   <p className="text-[10px] text-slate-400 truncate">{c.hostel} · {c.room}</p>
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full
-                                  text-[10px] font-bold ring-1 flex-shrink-0
-                                  ${PRIORITY_CONFIG[c.priority]?.badge}`}>
-                  {c.priority?.charAt(0).toUpperCase() + c.priority?.slice(1)}
-                </span>
+                <PriorityBadge priority={c.priority} />
               </div>
+
               {isMine && (
                 <div className="flex items-center gap-2 bg-emerald-50 rounded-xl px-3 py-2 mb-2">
                   <Hand className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
@@ -1065,6 +1189,7 @@ function ComplaintListView({ title, subtitle, icon, complaints, emptyText, user 
                   <span className="text-xs font-semibold text-slate-500 truncate">Claimed by {c.claimedBy}</span>
                 </div>
               )}
+
               <div className="flex items-center justify-between pt-3 border-t border-slate-50">
                 <div className="flex items-center gap-2">
                   <Clock className="w-3 h-3 text-slate-300" />
@@ -1089,6 +1214,7 @@ export default function PorterApp({ user, onLogout }) {
   const [showLogout,    setShowLogout]    = useState(false);
   const [complaints,    setComplaints]    = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [toast,         setToast]         = useState(null); // ← claim success toast
 
   useEffect(() => {
     const unsub = listenAllComplaints(setComplaints);
@@ -1105,8 +1231,18 @@ export default function PorterApp({ user, onLogout }) {
   const resolvedComplaints = complaints.filter(c => c.status === "resolved");
   const unreadCount        = notifications.filter(n => !n.read).length;
 
+  // Called from ComplaintDetail after successful claim
+  const handleClaimSuccess = (complaintTitle) => {
+    setToast(`Task claimed successfully! "${complaintTitle}" is now in your queue.`);
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50 relative" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
+      {/* Claim success toast */}
+      {toast && (
+        <Toast message={toast} onDismiss={() => setToast(null)} />
+      )}
 
       {showLogout && (
         <LogoutModal userName={user.name} onConfirm={onLogout} onCancel={() => setShowLogout(false)} />
@@ -1135,22 +1271,25 @@ export default function PorterApp({ user, onLogout }) {
             <ComplaintListView
               title="Open Complaints" subtitle="All unresolved complaints — claim one to start working"
               icon={<ClipboardList className="w-5 h-5 text-blue-600" />}
-              complaints={openComplaints} emptyText="No open complaints right now." user={user}
+              complaints={openComplaints} emptyText="No open complaints right now."
+              user={user} onClaimSuccess={handleClaimSuccess}
             />
           ) : active === "mine" ? (
             <ComplaintListView
               title="My Active Tasks" subtitle="Complaints you have claimed and are working on"
               icon={<Wrench className="w-5 h-5 text-amber-500" />}
-              complaints={myComplaints} emptyText="You haven't claimed any tasks yet." user={user}
+              complaints={myComplaints} emptyText="You haven't claimed any tasks yet."
+              user={user} onClaimSuccess={handleClaimSuccess}
             />
           ) : active === "resolved" ? (
             <ComplaintListView
               title="Resolved Complaints" subtitle="All complaints that have been fully resolved"
               icon={<CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-              complaints={resolvedComplaints} emptyText="No resolved complaints yet." user={user}
+              complaints={resolvedComplaints} emptyText="No resolved complaints yet."
+              user={user} onClaimSuccess={handleClaimSuccess}
             />
-          ): active === "block" ? (
-    <BlockOverviewView />
+          ) : active === "block" ? (
+            <BlockOverviewView />
           ) : active === "profile" ? (
             <ProfileView user={user} />
           ) : active === "notifs" ? (
