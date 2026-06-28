@@ -32,24 +32,28 @@ export async function sendStudentEmail({ toEmail, toName, complaintTitle, newSta
 }
 
 // ── Send email to porter when a new complaint is submitted ──────
-export async function sendPorterEmail({ toEmail, toName, complaintTitle, hostel, room, category }) {
+export async function sendPorterEmail(data) {
+  console.log("Porter email data:", data);
+
   try {
-    await emailjs.send(SERVICE_ID, TEMPLATES.porter, {
-      to_email:        toEmail,
-      to_name:         toName,
-      complaint_title: complaintTitle,
-      hostel:          hostel,
-      room:            room,
-      category:        category,
-      app_name:        "HostelDesk",
-      university:      "Crawford University",
-    });
-    console.log("Porter email sent");
+    const result = await emailjs.send(
+      SERVICE_ID,
+      TEMPLATES.porter,
+      {
+        to_email: data.toEmail,
+        to_name: data.toName,
+        complaint_title: data.complaintTitle,
+        hostel: data.hostel,
+        room: data.room,
+        category: data.category,
+      }
+    );
+
+    console.log("EmailJS success:", result);
   } catch (err) {
-    console.error("Email failed:", err);
+    console.error("EmailJS error:", err);
   }
 }
-
 // ── Send email to Head Porter (admin summary) ───────────────────
 export async function sendAdminEmail({ toEmail, toName, complaintTitle, studentName, hostel, priority }) {
   try {

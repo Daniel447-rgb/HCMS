@@ -35,6 +35,8 @@ const blocksRef        = collection(db, "blocks");
 // ─────────────────────────────────────────────────────────────────
 
 const GROQ_API_KEY = "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"; 
+const IMGBB_API_KEY  = import.meta.env.VITE_IMGBB_API_KEY;
+
 
 export async function analyzeComplaint(title, description) {
   const prompt = `
@@ -220,7 +222,7 @@ export async function uploadEvidencePhoto(file) {
   });
 
   const formData = new FormData();
-  formData.append("key",        "YOUR_IMGBB_API_KEY");
+  formData.append("key", "3104766d51a3de55e0f8474bd0c409e0");
   formData.append("image",      base64);
   formData.append("expiration", "15552000");
 
