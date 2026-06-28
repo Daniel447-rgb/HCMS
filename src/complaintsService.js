@@ -214,6 +214,9 @@ async function emailPorters({ complaintTitle, hostel, room, category, priority }
 // ─────────────────────────────────────────────────────────────────
 
 export async function uploadEvidencePhoto(file) {
+  console.log("Imgbb key:", import.meta.env.VITE_IMGBB_API_KEY);
+  console.log("File received:", file?.name, file?.size);
+
   const base64 = await new Promise((resolve, reject) => {
     const reader   = new FileReader();
     reader.onload  = () => resolve(reader.result.split(",")[1]);
@@ -232,6 +235,7 @@ export async function uploadEvidencePhoto(file) {
   });
 
   const data = await response.json();
+   console.log("Imgbb response:", data);
   if (!data.success) throw new Error("Photo upload failed");
 
   return {
